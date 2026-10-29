@@ -18,7 +18,7 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
    [x] Version/build checked against dist/out/Nestmates-1.0.1.zip: 1.0.1, game build 25664742,
-       BepInEx 6.0.0-be.785. Zip SHA-256 9d7a07224045422134f51a57da8a90b6c774914b69c8b0e7badf096419853310.
+       BepInEx 6.0.0-be.785. Zip SHA-256 a9a03e5edf2b733af5f61db211d7061f6407c765ddcf56ccaa55e19ef72d104a.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
