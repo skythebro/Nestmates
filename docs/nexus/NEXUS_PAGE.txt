@@ -1,9 +1,9 @@
 NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
 =================================================================================
-!! RELEASE CHECKLIST (1.0.0, approved by the owner)
+!! RELEASE CHECKLIST (current: 1.0.1 patch; 1.0.0 approved by the owner)
    [x] Source is public on GitHub: https://github.com/skythebro/Nestmates (MIT); linked in the description.
    [x] Renamed to "Nestmates" in the mod itself (plugins\Nestmates\, Nestmates.cfg, Nestmates.log,
-       Nestmates-1.0.0.zip); paths on this page updated.
+       Nestmates-1.0.1.zip); paths on this page updated.
    [x] No slide shows the old "IRONNEST CO-OP" window any more (all gallery shots are new, 2026-10-29).
    [x] Gallery shots 01, 02, 04, 05, 06 done (owner's shots, names blurred, composed 2026-10-29).
    [x] 03_gunnery done (gunnery_map_cheer_106: figure cheering at the tactical map, names blurred, 2026-10-29).
@@ -17,8 +17,8 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
        the description and changelog (build passed QA 2026-10-29).
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
-   [x] Version/build checked against dist/out/Nestmates-1.0.0.zip: 1.0.0, game build 25664742,
-       BepInEx 6.0.0-be.785. Zip SHA-256 357025a5d40a84a0de1d555ba49e50c5fe8875470f3d2418411a6a01113525ab.
+   [x] Version/build checked against dist/out/Nestmates-1.0.1.zip: 1.0.1, game build 25664742,
+       BepInEx 6.0.0-be.785. Zip SHA-256 c3051222ba30fed72d21f47e2bfb11ccb11ee2ee7e44213e4960b81bb28c7a82.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
@@ -45,7 +45,7 @@ Xeltor's GitHub repo.)
 ---------------------------------------------------------------------------------
 VERSION
 ---------------------------------------------------------------------------------
-1.0.0
+1.0.1
 
 
 ---------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ PERMISSIONS & CREDITS
 ---------------------------------------------------------------------------------
 FILE DESCRIPTION (for the uploaded zip, "Main files")
 ---------------------------------------------------------------------------------
-Nestmates 1.0.0 (Nestmates-1.0.0.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
+Nestmates 1.0.1 (Nestmates-1.0.1.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
 Requires BepInEx 6.0.0-be.785 IL2CPP. Every player needs the same version.
 Built for game build [GAME BUILD: 25664742].
 
@@ -170,6 +170,11 @@ MIT licensed and written from scratch. No game files are included. Source code, 
 ---------------------------------------------------------------------------------
 CHANGELOG (Nexus "Logs" tab)
 ---------------------------------------------------------------------------------
+1.0.1
+- Units spotted on the host's tactical map now also show on every guest's map.
+- Guests' stopwatches now match the host's, so shots can be timed from any seat.
+- A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
+
 1.0.0
 - First public release.
 - Crew avatars: every player is a turret crew member with helmet and scarf in their colour and glowing goggles,
@@ -196,6 +201,15 @@ CHANGELOG (Nexus "Logs" tab)
 - Settings -> Multiplayer has sections (Your player / On screen / Privacy & status / Host rules) and opens
   at the top.
 - Carried cats lie in the figure's arms.
+
+
+---------------------------------------------------------------------------------
+FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.1)
+---------------------------------------------------------------------------------
+Nestmates 1.0.1 (patch):
+- Units spotted on the host's tactical map now also show on every guest's map.
+- Guests' stopwatches now match the host's, so shots can be timed from any seat.
+- A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
 
 
 ---------------------------------------------------------------------------------

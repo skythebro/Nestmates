@@ -180,12 +180,21 @@ namespace IronNestCoop.Sync
             }
         }
 
-        /// <summary>After a local draw: markers past <paramref name="countBefore"/> are new.</summary>
+        /// <summary>
+        /// After a local draw: every marker nobody has seen yet goes to everyone. This used to send only the markers
+        /// past the count at the press, but if another player erased a marker during the drag the count shrank and the
+        /// new line was never sent. Markers shown from others, and ones already sent, are tracked, so they are skipped.
+        /// </summary>
         public void AfterDraw(MapMarkerPlacer placer, int countBefore)
         {
             if (!Coop.InSession || Coop.Applying || !Shared) return;
             int n = placer.placedMarkers?.Count ?? 0;
-            for (int i = countBefore; i < n; i++) SendAdd(placer, i, null);
+            bool old = LaunchArgs.Mutant("markercount");
+            for (int i = old ? countBefore : 0; i < n; i++)
+            {
+                var m = placer.placedMarkers[i];
+                if (m != null && (old || !_idOf.ContainsKey(m.Pointer))) SendAdd(placer, i, null);
+            }
         }
 
         /// <summary>After a local erase: tracked markers of <paramref name="before"/> that are gone.</summary>
@@ -194,8 +203,7 @@ namespace IronNestCoop.Sync
             if (!Coop.InSession || Coop.Applying || !Shared) return;
             foreach (var m in before)
             {
-                if (m == null || placer.placedMarkers.Contains(m)) continue;
-                string id = Track(m);
+                if (m == null || placer.placedMarkers.Contains(m) || !_idOf.TryGetValue(m.Pointer, out var id)) continue;   // never shared: nothing to remove elsewhere
                 _byId.Remove(id); _idOf.Remove(m.Pointer);
                 var w = Begin(Ev.Remove); w.Str(id); Coop.Send(Msg.MapMarker, w);
             }
