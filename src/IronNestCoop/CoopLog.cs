@@ -58,6 +58,9 @@ namespace IronNestCoop
         }
 
         /// <summary>Writes to our own file only. Meant for high-volume diagnostics.</summary>
-        public static void Debug(string m) { if (LaunchArgs.Verbose || Core.Settings.VerboseLog) Write("DEBUG", m); }
+        /// <summary>Detailed logging is on (the DetailedLog setting, or -coop-verbose for the tests).</summary>
+        public static bool DebugOn => LaunchArgs.Verbose || Core.Settings.VerboseLog;
+
+        public static void Debug(string m) { if (DebugOn) Write("DEBUG", m); }
     }
 }

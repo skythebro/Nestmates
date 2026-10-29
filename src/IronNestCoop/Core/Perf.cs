@@ -35,7 +35,7 @@ namespace IronNestCoop.Core
         public static void Stop(string name, long started)
         {
             double ms = (Clock.ElapsedTicks - started) * 1000.0 / Stopwatch.Frequency;
-            if (ms < SlowMs) return;
+            if (ms < SlowMs || !CoopLog.DebugOn) return;   // slow-frame warnings are part of the detailed log
             Slow.TryGetValue(name, out var s);
             s.Worst = System.Math.Max(s.Worst, ms); s.Count++;
             if (Time.unscaledTime >= s.NextLog)
