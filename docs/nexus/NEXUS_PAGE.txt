@@ -18,7 +18,7 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
    [x] Version/build checked against dist/out/Nestmates-1.0.1.zip: 1.0.1, game build 25664742,
-       BepInEx 6.0.0-be.785. Zip SHA-256 d5efc2964d1d8c27e49cfbee702954ce23c0ae8ca8edf077dfbebfaf7148ab45.
+       BepInEx 6.0.0-be.785. Zip SHA-256 9d7a07224045422134f51a57da8a90b6c774914b69c8b0e7badf096419853310.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
@@ -155,7 +155,7 @@ Built in. Nothing to download or set up.
 [list][*]A guest playing in another language may see the host's language in a few places that show pre-printed text. Teleprinters and notifications are translated.
 [*]Known bugs will be fixed in updates after 1.0. If something looks different between players, please report it (see below).[/list][line][size=5][b]Reporting a bug[/b][/size]
 Please include:
-[list][*][b]Both players' logs:[/b] [font=Courier New]<game folder>\BepInEx\Nestmates.log[/font] from the host and from the guest, from the same session.
+[list][*][b]Both players' logs:[/b] [font=Courier New]<game folder>\BepInEx\Nestmates.log[/font] from the host and from the guest, from the same session. Set [font=Courier New]DetailedLog = true[/font] in [font=Courier New]BepInEx\config\Nestmates.cfg[/font] first.
 [*]What you did, what you expected, and what the other player saw.
 [*]A screenshot from both sides if something looks different.[/list]Report bugs on the Nexus [i]Bugs[/i] tab or as [url=https://github.com/skythebro/Nestmates/issues]GitHub issues[/url]. Reports with both logs get fixed first.
 
@@ -176,6 +176,7 @@ CHANGELOG (Nexus "Logs" tab)
 - A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
 - A map line drawn while another player erased one is now shared with everyone (it could stay on one screen only).
 - Your own fire-mission card can be deleted again after you moved it to the table and back to your notepad.
+- Detailed logging and slow-frame warnings are now off by default (new DetailedLog setting under [Logging]; turn it on for bug reports).
 
 1.0.0
 - First public release.
@@ -214,6 +215,7 @@ Nestmates 1.0.1 (patch):
 - A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
 - A map line drawn while another player erased one is now shared with everyone (it could stay on one screen only).
 - Your own fire-mission card can be deleted again after you moved it to the table and back to your notepad.
+- Detailed logging and slow-frame warnings are now off by default (new DetailedLog setting under [Logging]; turn it on for bug reports).
 
 
 ---------------------------------------------------------------------------------

@@ -50,7 +50,7 @@ namespace IronNestCoop.Sync
         static FireMission FM => FireMission.Instance;
         static bool GuestReady => Coop.IsGuest && WorldReady.LocalReady;
 
-        static IEnumerable<MapEntity> All()
+        internal static IEnumerable<MapEntity> All()
         {
             var fm = FM;
             if (fm == null || fm.Entities == null) yield break;
@@ -214,9 +214,9 @@ namespace IronNestCoop.Sync
         // host, so guests never spotted anything. Once a second the host sends every unit's icon state and
         // position, and guests put their icons the same way with the game's own restore call.
 
-        static bool IconShown(EntityLocation loc) => loc.VisualRoot != null && loc.VisualRoot.activeSelf;
+        internal static bool IconShown(EntityLocation loc) => loc.VisualRoot != null && loc.VisualRoot.activeSelf;
 
-        static Vector3 IconPos(EntityLocation loc) => loc.VisualRoot != null ? loc.VisualRoot.transform.position : loc.transform.position;
+        internal static Vector3 IconPos(EntityLocation loc) => loc.VisualRoot != null ? loc.VisualRoot.transform.position : loc.transform.position;
 
         void SendReveals()
         {

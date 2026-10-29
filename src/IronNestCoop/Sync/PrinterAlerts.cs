@@ -51,7 +51,7 @@ namespace IronNestCoop.Sync
         readonly Dictionary<string, int> _scrollOff = new();   // guest: how many host updates in a row a paper was off
         public int ScrollsFixed;
 
-        static List<TeleprinterScroller> Scrollers()
+        internal static List<TeleprinterScroller> Scrollers()
         {
             if (Time.unscaledTime >= _nextScrollerScan || _scrollers.Exists(x => x == null))
             {

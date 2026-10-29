@@ -36,6 +36,7 @@ namespace IronNestCoop.QA
             "maprejoin" => bot.IsHostRole ? MapRejoinHost(bot) : MapRejoinGuest(bot),
             "emotes" => bot.IsHostRole ? EmotesHost(bot) : EmotesGuest(bot),
             "saveexit" => bot.IsHostRole ? SaveExitHost(bot) : SaveExitGuest(bot),
+            "fixes101" => bot.IsHostRole ? Fixes101Host(bot) : Fixes101Guest(bot),
             "language" => bot.IsHostRole ? LanguageHost(bot) : LanguageGuest(bot),
             "progress" => bot.IsHostRole ? ProgressHost(bot) : ProgressGuest(bot),
             "cursor" => CursorScenario(bot),
