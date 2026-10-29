@@ -1,10 +1,31 @@
-# IronNestCoop: pre-release code quality audit (v2, re-audit)
+# Nestmates: code quality audit log
+
+> **Status at release (1.0.0, 2026-10-29): released.** This file is the working log of three internal review
+> rounds held *before* 1.0. It is kept public for transparency. The verdicts further down describe the code as it
+> was on those dates, not the released build.
+>
+> What happened to the four release blockers from round 2:
+>
+> | Blocker | Status in 1.0.0 |
+> |---|---|
+> | Direct-connect TCP host exposed | Fixed: a join key is required, a host without a key listens on loopback only, and connections are capped. Still for trusted networks only (it says so in game). |
+> | State carried over between sessions | Fixed: every session gets a fresh epoch, and each module resets on session start and end. |
+> | Test and dev code in the release DLL | Made inert: test switches only work when the QA runner starts the game in its sandbox. The code is still compiled in. |
+> | Steam lobbies untested between real accounts | Tested by hand: two players on two machines and two Steam accounts, including Discord Join. |
+>
+> Round 3 found no new blockers. Its high items were fixed before release, except the item naming scheme
+> (R3-H4), which is partly fixed; the late-join and item tests pass. The remaining medium items harden
+> against a player who has already joined (Steam lobbies are friends or invite only), and they are planned for 1.1:
+> sender readiness checks on the host, size caps and rate limits for marker, item and alert messages, fragment
+> replay, per-frame network budgets, a punchcard lookup cache, a Discord pipe owner check, and rate-limited error logs.
+
+## Round 2 (v2 re-audit, 2026-10-28)
 
 | | |
 |---|---|
 | Date | 2026-10-28 (second pass, same day as v1) |
 | Version audited | 0.1.0 (released as 1.0.0) |
-| Repo state | `.git` present, still **zero commits** |
+| Repo state | not yet committed at the time (first commit came with the 1.0.0 release) |
 | Method | Six read-only Claude Haiku auditors, one per area. Each re-checked every v1 finding and searched for new issues. The coordinating agent then checked the highest-severity claims against the source. |
 
 Paths are relative to `src/IronNestCoop/` unless they start with `src/`, `tests/`, `tools/` or `dist/`. Line numbers are current as of this pass.
@@ -14,9 +35,9 @@ Paths are relative to `src/IronNestCoop/` unless they start with `src/`, `tests/
 - **No marker**: an auditor reported it from evidence, but no one re-checked it. Confirm before fixing.
 - **UNSURE**: depends on game internals. Needs a runtime or QA check.
 
-## Verdict
+## Verdict (at the time, 2026-10-28)
 
-**Not release-ready.** The codebase roughly doubled (~16k lines) since v1, and real progress has been made:
+**Not release-ready yet.** The codebase roughly doubled (~16k lines) since v1, and real progress has been made:
 
 - The network layer's crash and memory bugs are mostly fixed.
 - The F7 soft-lock is fixed.

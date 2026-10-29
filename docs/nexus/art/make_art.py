@@ -428,35 +428,13 @@ EMOTES = ["Wave", "Look here!", "Thumbs up", "Salute", "Shrug", "Cheer", "Nod", 
 
 def crew_slide():
     w, h = 1920, 1080
-    # the 8 emotes from the avatar contact sheet (cells 320x250; row 1 = emotes 1-5, row 2 = 6-8).
-    # Each cell loses its small label strip (top 30 px) and gets a band below for a readable label.
-    # Full contact-sheet cells (raised arms reach almost to the top), with only the sheet's small label painted
-    # out, plus a strip of plain wall above and floor below, so every figure has a margin in its frame.
-    # Cell interiors only: the sheet's 2 px separators are at rows 249-250 and columns 319-320 of every cell.
-    CW, CH, BAND, PT, PB, GAP = 318, 248, 42, 16, 26, 8
-    cell_h = PT + CH + PB
-    sheet = Image.open(os.path.join(AVATAR_IMG, "contact-sheet.png")).convert("RGB")
-    grid = Image.new("RGB", (4 * CW + 3 * GAP, 2 * (cell_h + BAND)), INK)
+    # The 8 emote tiles are clean renders made by render_emotes.py (art/emotes/emote_<n>.png, no labels or cell
+    # lines), one per emote at a readable moment. Each tile gets a band below for its label.
+    CW, CH, BAND, GAP = 320, 250, 42, 8
+    grid = Image.new("RGB", (4 * CW + 3 * GAP, 2 * (CH + BAND)), INK)
     for i in range(8):
-        r, c = divmod(i, 5)
-        cell = sheet.crop((c * 320 + 1, r * 250 + 1, c * 320 + 1 + CW, r * 250 + 1 + CH))
-        px = cell.load()
-        # the sheet's label ("1 Wave"...) is light grey text in the top-left corner; figures there are colour or dark
-        lw = max([x for y in range(0, 36) for x in range(0, 170)
-                  if sum(px[x, y]) > 330 and max(px[x, y]) - min(px[x, y]) < 40] or [0])
-        for y in range(0, 36):
-            bg = px[1, y]
-            for x in range(0, min(CW, lw + 8)):
-                px[x, y] = bg
-        framed = Image.new("RGB", (CW, cell_h))
-        framed.paste(cell.crop((0, 2, CW, 3)).resize((CW, PT)), (0, 0))                 # plain wall above
-        framed.paste(cell, (0, PT))
-        last, floor = cell.crop((0, CH - 1, CW, CH)), px[2, CH - 2]
-        for j in range(PB):                                                             # floor below, fading any
-            t = min(1.0, (j + 1) / 10)                                                   # shadow into plain floor
-            framed.paste(Image.blend(last, Image.new("RGB", (CW, 1), floor), t), (0, PT + CH + j))
-        grid.paste(framed, ((i % 4) * (CW + GAP), (i // 4) * (cell_h + BAND)))
-    CH = cell_h                                   # the label maths below works on the framed cell
+        tile = Image.open(os.path.join(HERE, "emotes", f"emote_{i + 1}.png")).convert("RGB").resize((CW, CH), Image.LANCZOS)
+        grid.paste(tile, ((i % 4) * (CW + GAP), (i // 4) * (CH + BAND)))
     gp = os.path.join(TMP, "crew_emotes.png"); grid.save(gp)
     front, fw, fh = _scaled(gp, 1060, 540, "crew_emotes_s.png")
     k = (fw - 16) / grid.width          # the 8 px border sits inside the img box (border-box)
