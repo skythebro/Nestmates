@@ -43,5 +43,6 @@ Known gaps in this build
     re-rendered; anything else printed as finished text may stay in the host's language).
 
 Settings: <game dir>\BepInEx\config\Nestmates.cfg (also in game: Settings -> Multiplayer).
-Logs: <game dir>\BepInEx\Nestmates.log (please attach it to any bug report).
+Logs: <game dir>\BepInEx\Nestmates.log. For a bug report, set DetailedLog = true under [Logging] in
+  Nestmates.cfg first, play until the problem happens, then attach the log.
 License: MIT (see LICENSE). Independent fan project, not affiliated with the game's developers.

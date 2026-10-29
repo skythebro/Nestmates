@@ -16,7 +16,7 @@ namespace IronNestCoop.Core
             _nameTags = cfg.Bind("Display", "ShowNameTags", true, "Name tags above other players.");
             _hud = cfg.Bind("Display", "ShowCrewList", true, "Crew list in the top-left corner while the window is closed.");
             _devTools = cfg.Bind("Debug", "DevTools", false, "Test shortcuts for the host (Ctrl+Shift+H lists them) and a Dev tab in the co-op window: points, cards, shells, charges, valves, engine, timer, win/lose, start any mission. The first use backs up your saves and turns achievements, stats and leaderboards off until the game restarts.");
-            _verbose = cfg.Bind("Logging", "DetailedLog", false, "Detailed log lines (what each sync module sends and applies, and slow-frame warnings). Off by default. For a bug report: turn it on, play until the problem happens, then send BepInEx\Nestmates.log.");
+            _verbose = cfg.Bind("Logging", "DetailedLog", false, "Detailed log lines (what each sync module sends and applies, and slow-frame warnings). Off by default. For a bug report: turn it on, play until the problem happens, then send BepInEx\\Nestmates.log.");
             _mapPresence = cfg.Bind("Display", "ShowMapPresence", true, "While someone uses the tactical map, show their pointer on the table and their figure at the table edge next to it.");
             _steamStatus = cfg.Bind("Steam", "ShowStatus", true, "Your Steam friends see what you are doing: main menu, operations map, or the mission and how long you have played it (and with how many players).");
             _steamStation = cfg.Bind("Status", "ShowStation", false, "Add where you are in the turret to your Steam and Discord status (at the tactical map, at the coffee machine, ...).");
