@@ -1,0 +1,67 @@
+SCREENSHOTS FOR THE NEXUS GALLERY
+=================================
+Each slot below has a ready-made caption overlay (transparent PNG) in images/overlays/.
+You only take the screenshot:
+
+  1. Take it in game at 1920x1080 or larger (16:9). Hide the F7 window unless the shot is about it.
+     The overlay darkens the bottom ~280 px and puts a small badge in the top-right corner, so keep
+     the important part of the picture in the middle and the top half.
+  2. Save it as  docs/nexus/art/screenshots/<slot>.png  (or .jpg), e.g. screenshots/01_crew.png
+  3. Run:  python -I docs/nexus/art/make_art.py compose
+     -> images/gallery_<slot>.png (screenshot + caption), ready to upload.
+  To change a caption, edit GALLERY in make_art.py and run it without "compose".
+
+Slot          Caption                          What to capture
+------------  -------------------------------  ---------------------------------------------------------
+01_crew       Crew one turret together         Hero shot: 2-5 players at the turret, name tags visible,
+                                               somebody at the map and somebody at the gun.
+02_controls   Every control is shared          A guest pulling a lever / reloading / turning a dial,
+                                               seen from another player's view.
+03_gunnery    Same shot, same crater           A shell landing on the tactical map, or the gun firing.
+04_menu       Built into the game's menus      Settings -> Multiplayer page (host rules visible).
+05_lobby      Host and invite over Steam       The co-op menu while hosting: friend list / lobby code.
+06_cats       One cat per player               Several cats on the floor, with their owners nearby.
+
+DONE (2026-10-29), APPROVED BY THE OWNER for upload (a friend is in them, names blurred):
+  01_crew      from the owner's shot 86 (guest at the elevation controls, station line visible)
+  02_controls  from the owner's shot 87 (guest at the elevation console)
+
+DONE (2026-10-29), owner's own two machines, no third-party consent needed (names blurred anyway):
+  04_menu      from menu_top_98 (Settings -> Multiplayer with section headers; crew-list corner blurred).
+               menu_bottom_99 (Privacy & status / Host rules) was not used: the status slide and the page text
+               already cover those toggles.
+  05_lobby     from lobby_f7_nodev_108 (retake with DevTools off, no "Dev" tab: F7 window while hosting over the
+               main-menu desk, lobby code as dots = streamer mode). Blurred: the two CREW names ("(host) (you)" and
+               the ping kept), the FPS counter. Dots kept. Replaces the old lobby_f7_100 (had the Dev tab).
+  06_cats      from cats_102 (figure at the desk with both cats; picked over cats_cheer_101 because the figure faces
+               the camera and reads more clearly). Blurred: the name tag, the "<name>'s" owner line under Hastur,
+               the corner. Kept: "Hastur", "Cutie patootie", "your cat".
+  03_gunnery   from gunnery_map_cheer_106 (2026-10-29: the other player's figure cheering at the tactical map,
+               trajectory lines, recon photo strips, crater marker). Blurred: the tilted name tag (polygon mask,
+               "at the tactical map" kept), the pointer label beside the crater, the corner.
+               FALLBACK: gunnery_map_rail_107 (same scene, hands on the rail), redacted the same way, kept OUTSIDE
+               the repo at local/owner-shots/redacted-fallback/03_gunnery_rail_107.png. To use it, copy it over
+               art/screenshots/03_gunnery.png and run make_art.py compose.
+DROPPED: look_here_103 (the owner doesn't want an emote close-up). Not redacted or used.
+NOTHING LEFT TO TAKE: gallery slots 01-10 are all done.
+
+  Originals stay private in local/owner-shots/. local/owner-shots/redact.py blurs the name tags and the crew-list
+  corner, then writes the edited copies here. For new real shots: blur every persona name (tags, crew list,
+  toasts, map pointers), lobby codes, chat and Steam overlay bits before they go into art/screenshots/.
+
+Generated slides (no screenshot needed): gallery_07_shared.png, gallery_08_howto.png, gallery_09_status.png,
+gallery_10_crew.png (made from the avatar renders in docs/avatar/images).
+
+With the new crew avatars, 01_crew and 06_cats are the shots that show them best: get the figures close,
+with their helmets, scarves and glowing goggles visible. Old screenshots with the bullet-shaped figure are out of date.
+
+STEAM STATUS (DONE 2026-10-29: art/screenshots/steam_status.png, the game-info box with the name cropped out)
+  gallery_09_status shows the real Discord status (docs/discord/discord_status_example.png). Its Steam half
+  shows the status lines as text until there is a real screenshot:
+  - While in a mission with the Steam status on, open the Steam friends list on a SECOND account/PC, right-click
+    the player -> View game info, and screenshot just that box.
+  - Crop out the persona name and avatar (or use a neutral test account), save it as
+    docs/nexus/art/screenshots/steam_status.png and run make_art.py compose. It replaces the text lines.
+
+Upload order on Nexus: thumbnail_1280x720.png as the primary image, then 01, 10, 02, 03, 07, 09, 04, 05, 06, 08.
+Use the real player names of whoever agrees to be in the pictures (or rename to something neutral).

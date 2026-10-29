@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Dumps the crew figure's geometry (src/IronNestCoop/Sync/AvatarGeometry.cs, no Unity types) to
+       docs/avatar/geometry.js for the browser preview. Run from the repo root: dotnet run (project tools/avatar-preview) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>AvatarPreview</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\IronNestCoop\Sync\AvatarGeometry.cs" Link="AvatarGeometry.cs" />
+  </ItemGroup>
+</Project>

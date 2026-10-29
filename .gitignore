@@ -1,0 +1,12 @@
+bin/
+obj/
+*.user
+.vs/
+local/
+artifacts/
+*.log
+dist/out/
+__pycache__/
+*.pyc
+# third-party fonts used only to render the Nexus art (OFL; not redistributed here)
+docs/nexus/art/fonts/

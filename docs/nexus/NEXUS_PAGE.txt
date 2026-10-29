@@ -1,0 +1,210 @@
+NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
+=================================================================================
+!! STILL TO DO BEFORE PUBLISHING (owner, 2026-10-28: GitHub and the rest come when the mod is fully finished)
+   [ ] Put the source on GitHub (repo still has zero commits), then replace GITHUB_URL_HERE below.
+   [x] Renamed to "Nestmates" in the mod itself (plugins\Nestmates\, Nestmates.cfg, Nestmates.log,
+       Nestmates-0.1.0.zip); paths on this page updated.
+   [x] No slide shows the old "IRONNEST CO-OP" window any more (all gallery shots are new, 2026-10-29).
+   [x] Gallery shots 01, 02, 04, 05, 06 done (owner's shots, names blurred, composed 2026-10-29).
+   [x] 03_gunnery done (gunnery_map_cheer_106: figure cheering at the tactical map, names blurred, 2026-10-29).
+   [x] 05_lobby retaken with DevTools off (lobby_f7_nodev_108, no "Dev" tab), placeholder replaced.
+   [x] look_here_103 dropped (the owner doesn't want an emote close-up).
+   [x] Steam "View game info" screenshot of the status (name cropped out) is in gallery_09_status.
+   [x] New Discord status screenshot (new "nestmates" picture) is in gallery_09_status (2026-10-29).
+   [x] gallery_01_crew and gallery_02_controls APPROVED by the owner (2026-10-29). Real co-op shots with a friend
+       in them; names blurred (name tags + crew list).
+   [x] Emotes, streamer mode, map pointing, operating animation and the rejoin shell markers are merged into
+       the description and changelog (build passed QA 2026-10-29).
+   [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
+       Discord Join confirmed between two real machines.
+   [x] Version/build checked against dist/out/Nestmates-0.1.0.zip (2026-10-29): 0.1.0, game build 25664742,
+       BepInEx 6.0.0-be.785, Nestmates.dll a67313a5. Re-check if the zip is rebuilt before upload.
+   [ ] Pick the Nexus category (Multiplayer if it exists, otherwise Gameplay).
+   [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
+   [x] Discord Join confirmed with real players (2026-10-29: Join on a Discord game invitation on a second PC
+       joined the host's Steam lobby). The "Discord Join is new" line is removed from Known issues.
+
+Copy each section into the matching field on the Nexus upload form.
+The DESCRIPTION section is BBCode: paste it into the editor's BBCode/source mode.
+It is written compact on purpose: Nexus turns every Enter into a line break, so there are no Enters
+next to [line], [list] and [center] (those already have their own spacing).
+Before publishing, check the [VERSION] and [GAME BUILD] values against the build you upload.
+
+
+---------------------------------------------------------------------------------
+MOD NAME
+---------------------------------------------------------------------------------
+Nestmates - Online Co-op
+
+(Names already used on the Iron Nest Nexus, so avoid them: "Iron Nest co-op" (Jager2251),
+"Open Nest Co-op", "Synchrony", "VR. Co-op. PvP.". "IronNestCoop" is also the name of
+Xeltor's GitHub repo.)
+
+
+---------------------------------------------------------------------------------
+VERSION
+---------------------------------------------------------------------------------
+0.1.0
+
+
+---------------------------------------------------------------------------------
+CATEGORY
+---------------------------------------------------------------------------------
+Multiplayer  (use "Gameplay" if the game has no Multiplayer category)
+
+
+---------------------------------------------------------------------------------
+BRIEF OVERVIEW / SUMMARY (Nexus limit is about 350 characters)
+---------------------------------------------------------------------------------
+Crew one turret with up to 4 friends over Steam. Every gun, lever, dial, card, map line, record and cat is synced, and so is each enemy and teleprinter. The host runs the mission and everyone sees the same world. Join a mission in progress. Steam and Discord friends see your mission. Open source (MIT).
+
+
+---------------------------------------------------------------------------------
+REQUIREMENTS (Nexus "Requirements" tab)
+---------------------------------------------------------------------------------
+- BepInEx 6.0.0-be.785, Unity IL2CPP win x64 (off-site: https://builds.bepinex.dev/projects/bepinex_be)
+  Note: "BepInEx 6 bleeding edge, build 785 exactly. Other builds are untested."
+- Steam version of the game (the co-op uses Steam lobbies and Steam's relay).
+- Every player needs the mod, same version.
+- Optional, for the Discord status: the Discord desktop app running on the same PC (nothing to install or set up
+  in the mod). Without it, everything else works; the Discord status just doesn't show.
+
+
+---------------------------------------------------------------------------------
+TAGS (pick what Nexus offers)
+---------------------------------------------------------------------------------
+Multiplayer, Co-op, Gameplay, BepInEx, Open Source
+
+
+---------------------------------------------------------------------------------
+PERMISSIONS & CREDITS
+---------------------------------------------------------------------------------
+- Source code: MIT license, see the GitHub link. You may fork, change and re-upload, keeping the license notice.
+- Asset use / upload permission / modification permission: Yes (MIT).
+- Conversion permission: Yes. Use in paid mods: as the MIT license allows.
+- Credits: BepInEx team, HarmonyX, Il2CppInterop. The coop-anything playbook (cranebeaker).
+  Game by the IRON NEST developers. This is an independent fan project, not affiliated with them.
+
+
+---------------------------------------------------------------------------------
+FILE DESCRIPTION (for the uploaded zip, "Main files")
+---------------------------------------------------------------------------------
+Nestmates 0.1.0. Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
+Requires BepInEx 6.0.0-be.785 IL2CPP. Every player needs the same version.
+Built for game build [GAME BUILD: 25664742].
+
+
+---------------------------------------------------------------------------------
+DESCRIPTION (BBCode)
+---------------------------------------------------------------------------------
+[center][size=6][b]NESTMATES[/b][/size]
+[size=4]Online co-op for IRON NEST: Heavy Turret Simulator[/size]
+[i]One turret. Up to five crew. One world, the same for everybody.[/i][/center][line][size=5][b]What it is[/b][/size]
+Nestmates lets you and up to four friends crew the [b]same[/b] turret over Steam. One player calls the bearing on the tactical map. Another runs the reload station. Somebody feeds the diesel, and someone else gets the espresso going. Everyone works the same machine in the same world: when the host's enemy moves, your enemy moves. When your shell lands, it lands on their map too, at the same spot and with the same crater photo.
+
+It is built from scratch around a [b]host-authoritative[/b] design. The host's game runs the mission: enemies, the mission script, impacts, teleprinter orders and the economy. Everyone else sees the host's results, and a guest's button press, lever pull or dial turn is carried out on the host's game. No two players can end up with different versions of the world.[line][size=5][b]What is shared[/b][/size]
+[list][*][b]The fight:[/b] enemies and their movement, mission flow, timers and the clock, flyover planes, counter-battery barrages, scripted impacts.
+[*][b]The guns:[/b] the turret's aim and every gun. Reload steps, cylinders, powder charges, and each shot with the host's exact flight and impact.
+[*][b]Every control:[/b] every dial, slider, lever and button, including hover effects (a lever pulling its clamp back when someone looks at it).
+[*][b]The machinery:[/b] the diesel engine and its valves, broken valves, light switches and emergency lamps, alert lights, the espresso machine.
+[*][b]The paperwork:[/b] teleprinters (each player reads them [b]in their own language[/b]), notifications, fire-mission cards, map tokens, map drawings, deliveries through the ceiling hatch. Shell markers at the map's edge (arrow and distance for a shot that flew off the map) and correction arrows, also for a player who rejoins mid-mission.
+[*][b]The requisition console:[/b] the host's punchcard deck, and the host's unlocked records and decorations.
+[*][b]The record player:[/b] record, play and stop, track, and position. Everyone hears the same song at the same moment.
+[*][b]The crew:[/b] every player is a turret crew member of their own: helmet and scarf in your colour, gas-mask goggles that glow, a name tag. They walk, crouch and wave hello. Hold a lever, wheel or slider and your figure works it for everyone to see. At the tactical map, figures stay visible and point at what they're looking at. [b]Emotes[/b] on keys 1-8 (see How to play). [b]One cat per player[/b]: bring yours along, set up the way you set it up in the game. Pick your cat up and it lies in your figure's arms for everyone to see.
+[*][b]Random rolls:[/b] crater photo angles, aiming-error arrows, plane paths, newspaper articles and item placement roll the same on every machine.[/list][size=5][b]What stays yours[/b][/size]
+[list][*]Your clipboard, notepad and zoomed-in sheets: they hang off your own view.
+[*]Your volume and menus.
+[*]Your cat's behaviour. Your cat is still your cat; the others see a copy of it.
+[*][b]Your campaign progress.[/b] Finishing a mission with the host records it as completed in [i]your own[/i] profile too. Your own punchcards keep their own use counts, minus what the shared mission spent.[/list][line][size=5][b]Host rules[/b][/size]
+Some things could be either shared or separate for each player. For each of these, the host decides, and guests see the host's choice in their own menu (read-only), so they can ask the host to change it.
+[list][*][b]Cards only for the computer operator:[/b] fire-mission cards go only to the player who pressed Calculate. Off (default): everyone gets the same card.
+[*][b]Shared record player volume[/b] (default on).
+[*][b]Show hover effects to everyone[/b] (default on).
+[*][b]Share lines drawn on the map[/b] (default on). Off: each player draws on their own map.
+[*][b]Counter-battery timer:[/b] off, 50%, 100%, 200% or 300% of the game's own. More crew, more chaos: give them more time, or less for a challenge.[/list][size=5][b]Pausing[/b][/size]
+A shared world can't freeze for just one player. Opening your menu doesn't stop time, and the game keeps running when you alt-tab. When [b]every[/b] player has their pause menu open, the world pauses for everyone, and it starts again as soon as one of them closes it.[line][size=5][b]Your friends see what you're up to[/b][/size]
+Built in. Nothing to download or set up.
+[list][*][b]Steam:[/b] your game info shows where you are: [i]In the main menu[/i], [i]Choosing a mission on the operations map[/i], or the mission with your time in it and the crew size, e.g. [i]Counter-Battery · 12 min · hosting co-op, 2 players[/i]. Players of the same co-op game are grouped together in friends lists. Steam only allows the short line under your name for text the game's developer registered, so the status shows when friends open [i]View game info[/i].
+[*][b]Discord:[/b] needs the Discord desktop app running. Shows [i]Playing Nestmates[/i] with the mission, whether you're hosting or joined and the crew size (e.g. [i]hosting co-op (2 of 5)[/i]), and a live clock from the mission's start.
+[*][b]Join from Discord:[/b] while you host, Discord friends can join your game straight from your status. A Discord game invitation from you shows the Nestmates picture, what you're doing (e.g. [i]In the main menu[/i]), how many are playing (e.g. 1/5) and a [i]Join[/i] button. They need the game and Nestmates running, and they must also be your Steam friends, because the lobby stays friends-only. On by default; turn it off with "Discord: friends can join me".
+[*][b]Where you are in the turret[/b] (at the tactical map, at the elevation controls, at the coffee machine...) can be added to both. It is [b]off by default[/b].
+[*]Each part can be turned off: [i]Settings → Multiplayer[/i] in the game's menu, or [i]F7 → Settings → Status for friends[/i], which also previews what friends see.[/list][line][size=5][b]Installation[/b][/size]
+[b]Every player[/b] has to do this, and everyone needs the same version of the mod.
+[list=1][*][b]Back up your saves.[/b] Copy the game's folder in [font=Courier New]%USERPROFILE%\AppData\LocalLow\[/font] somewhere safe.
+[*]Install [url=https://builds.bepinex.dev/projects/bepinex_be]BepInEx 6.0.0-be.785[/url], the [b]Unity IL2CPP win x64[/b] build, into the game folder. Start the game once and wait for the main menu. The first start is slow because BepInEx sets itself up.
+[*][b]Remove any other co-op mod[/b] from [font=Courier New]BepInEx\plugins[/font]. Two co-op mods at once will fight each other.
+[*]Extract this mod's zip into the game folder. You should end up with [font=Courier New]BepInEx\plugins\Nestmates\[/font], containing Nestmates.dll and Nestmates.Net.dll.
+[*]Start the game from Steam.[/list][b]Upgrading from an IronNest Co-op test build?[/b] Delete [font=Courier New]BepInEx\plugins\IronNestCoop\[/font] first. Your settings and ban list carry over automatically.
+
+[size=5][b]How to play[/b][/size]
+[list][*][b]Open the co-op menu:[/b] [i]Settings → Multiplayer → Nestmates menu[/i], from the main menu or the Esc menu. [b]F7[/b] also opens it.
+[*][b]Host:[/b] Play tab → [b]Host[/b] (friends only, or invite only). Invite friends through the Steam overlay or from the list, or share the 8-character lobby code.
+[*][b]Join:[/b] accept the Steam invite, pick your friend under [i]Join a friend[/i], or paste their lobby code.
+[*]The [b]host picks the mission[/b] as usual, and everyone is taken into it. You can also join a mission that is already running.
+[*][b]Your own settings[/b] are in Settings → Multiplayer, in sections: [i]Your player[/i], [i]On screen[/i], [i]Privacy & status[/i] and [i]Host rules[/i]. That covers colour, name tags, crew list, map pointers, bring your own cat, skip intro, Steam and Discord status, Discord Join, emotes and streamer mode. They are saved in [font=Courier New]BepInEx\config\Nestmates.cfg[/font].
+[*][b]Emotes:[/b] [b]1[/b] Wave, [b]2[/b] Look here!, [b]3[/b] Thumbs up, [b]4[/b] Salute, [b]5[/b] Shrug, [b]6[/b] Cheer, [b]7[/b] Nod, [b]8[/b] Shake head. The keys do nothing while you type in a text field, and you can turn them off ("Emotes on keys 1-8").
+[*][b]Streamer mode[/b] ("Streamer mode: hide lobby codes", on by default): lobby codes, the join key and network addresses show as dots. [i]Show[/i] reveals them for 20 seconds, and [i]Copy[/i] still copies them.
+[*]The host can [b]kick or ban[/b] players from the Players tab.[/list][line][size=5][b]Compatibility[/b][/size]
+[list][*]Built and tested on game build [b]25664742[/b] with BepInEx [b]6.0.0-be.785[/b]. A game update can break any mod. If it does, wait for an update here before reporting bugs.
+[*][b]Not compatible with other co-op mods.[/b] Use only one co-op mod at a time.
+[*]Other BepInEx mods that only change visuals or quality of life should be fine. Mods that change mission logic, enemies or the economy may desync. If you run one, every player needs it.
+[*]Steam only. The mod doesn't switch off achievements or leaderboards.
+[*]Discord status needs the Discord desktop app on the same PC. The browser version of Discord can't receive it.[/list][size=5][b]Known issues[/b][/size]
+[list][*]A guest playing in another language may see the host's language in a few places that show pre-printed text. Teleprinters and notifications are translated.
+[*]This is a first release. If something looks different between players, please report it (see below).[/list][line][size=5][b]Reporting a bug[/b][/size]
+Please include:
+[list][*][b]Both players' logs:[/b] [font=Courier New]<game folder>\BepInEx\Nestmates.log[/font] from the host and from the guest, from the same session.
+[*]What you did, what you expected, and what the other player saw.
+[*]A screenshot from both sides if something looks different.[/list]Post in the Bugs tab or open an issue on GitHub. Reports with both logs get fixed first.
+
+[size=5][b]How it was tested[/b][/size]
+Each part of the sync has an automated test. Two copies of the game run side by side, in-game bots play both seats, and the two worlds are compared item by item: gunnery, controls, engine, music, cats, cards, map, requisition, late join, pausing and more. Each test is also run with its sync switched off to prove it can fail. On top of that, the mod has been played by real players over Steam.
+
+[size=5][b]Open source[/b][/size]
+MIT licensed and written from scratch. No game files are included. Source, build steps and tests: [url=GITHUB_URL_HERE]GitHub[/url].
+[center][i]Independent fan project. Not affiliated with the developers of IRON NEST.[/i][/center]
+
+
+---------------------------------------------------------------------------------
+CHANGELOG (Nexus "Logs" tab)
+---------------------------------------------------------------------------------
+0.1.0
+- First public release.
+- Crew avatars: every player is a turret crew member with helmet and scarf in their colour and glowing goggles,
+  and walks, crouches, waves and points at the map. Built from code, no extra downloads.
+- Emotes on keys 1-8: Wave, Look here!, Thumbs up, Salute, Shrug, Cheer, Nod, Shake head. Ignored while typing;
+  can be turned off ("Emotes on keys 1-8").
+- Figures stay visible at the tactical map and point at what they look at, and they work the lever, wheel or
+  slider their player is holding.
+- Streamer mode ("Streamer mode: hide lobby codes", on by default): lobby codes, join key and network addresses
+  show as dots. Show reveals them for 20 s; Copy still copies.
+- A player who rejoins mid-mission sees the shell markers at the map's edge (arrow and distance) and the
+  correction arrows exactly as the host has them.
+- Steam status: friends see the menu, the operations map, or your mission with time played and crew size
+  (in "View game info"). Players of one co-op game are grouped together in friends lists.
+- Discord status (needs the Discord desktop app): mission, hosting/joined and crew size, live mission clock.
+- Optional "where I am in the turret" part for both, off by default. Everything can be turned off in
+  Settings -> Multiplayer or F7 -> Settings -> Status for friends.
+- Fixed: watching someone drag a dial, slider or teleprinter scroll no longer freezes you.
+- Fixed: spamming Escape no longer gets the pause menu stuck (the shared pause starts once every player's
+  menu has been open for 1 second).
+- Fixed: coffee cups and the coffee can stay in sync even when each player left them in a different place.
+- Join from Discord: while you host, Discord friends who are also your Steam friends can join from your status
+  (needs the game and mod running). On by default; "Discord: friends can join me" turns it off.
+- Settings -> Multiplayer has sections (Your player / On screen / Privacy & status / Host rules) and opens
+  at the top.
+- Carried cats lie in the figure's arms.
+
+
+---------------------------------------------------------------------------------
+IMAGES (upload order)
+---------------------------------------------------------------------------------
+Primary image / thumbnail : images/thumbnail_1280x720.png
+Header / banner           : images/banner_1920x480.png
+Gallery                   : gallery_01_crew and gallery_02_controls are done and APPROVED by the owner
+                            (owner's real co-op shots, names blurred).
+                            gallery_04_menu, gallery_05_lobby and gallery_06_cats are done (owner's shots from
+                            the owner's own two machines, names blurred), and so is gallery_03_gunnery. All gallery slides are done.
+                            (see SHOT_LIST.txt). gallery_07_shared, gallery_08_howto, gallery_09_status and
+                            gallery_10_crew are ready (09 has the real Discord and Steam status screenshots).
+                            Order: 01, 10, 02, 03, 07, 09, 04, 05, 06, 08.

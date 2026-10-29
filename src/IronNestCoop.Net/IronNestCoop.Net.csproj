@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Game-agnostic networking and sync core. No Unity or game references, so it can be
+       unit-tested and fuzzed without the game. -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>IronNestCoop.Net</RootNamespace>
+    <AssemblyName>Nestmates.Net</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The BepInEx 6 IL2CPP plugin. References the game's interop assemblies from $(GameDir)
+       (the test copy), never copies them into the output. -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>Nestmates</AssemblyName>
+    <RootNamespace>IronNestCoop</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS0618;CS1591</NoWarn>
+    <BepInDir>$(GameDir)\BepInEx</BepInDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IronNestCoop.Net\IronNestCoop.Net.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepInDir)\core\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInDir)\core\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(BepInDir)\core\0Harmony.dll" Private="false" />
+    <Reference Include="$(BepInDir)\core\Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInDir)\core\Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Il2CppSystem.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Il2CppSystem.Core.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Assembly-CSharp-firstpass.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Kamgam.UGUIComponentsForSettings.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\com.rlabrecque.steamworks.net.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.AnimationModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.AIModule.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Unity.TextMeshPro.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Unity.InputSystem.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\FMODUnity.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="$(BepInDir)\interop\UnityEngine.ScreenCaptureModule.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- Deploy into the TEST copy only. -->
+  <Target Name="DeployToTestCopy" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
+    <Copy SourceFiles="$(TargetDir)Nestmates.dll;$(TargetDir)Nestmates.Net.dll" DestinationFolder="$(BepInDir)\plugins\Nestmates" />
+  </Target>
+</Project>

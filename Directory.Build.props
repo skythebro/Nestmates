@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!-- Test copy of the game, never the Steam install. Override with -p:GameDir=... -->
+    <GameDir Condition="'$(GameDir)' == ''">F:\IronNestCoopDev\game</GameDir>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Version>1.0.0</Version>
+    <Authors>Nestmates contributors</Authors>
+  </PropertyGroup>
+</Project>

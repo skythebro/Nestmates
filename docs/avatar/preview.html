@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nestmates crew figure preview</title>
+<!-- Offline preview of the co-op crew figure. Geometry comes from geometry.js, generated from
+     src/IronNestCoop/Sync/AvatarGeometry.cs (the same numbers the game uses); the motion below is a
+     port of AvatarModel.Animate (keep the two in step). A small depth-buffered software renderer,
+     flat shaded, no libraries.
+     Hash options: #sheet (contact sheet of every pose and emote), mode=walk|turn|crouch|station|operate|busy|
+     mappoint|maplean|mapflicker|mapfar|mapside|mapwide|hold|kitten (join with + to combine), emote=1..8, single, yaw, pitch, dist, tx, ty, tz,
+     t (seconds to run ahead), at (emote time at the end of t), bg (hex colour), ss (supersampling),
+     checkhold (compares the C# hold-point formula with the matrices, shown at the bottom). -->
+<style>
+  html, body { margin: 0; height: 100%; background: #140d0b; color: #efe6d6; font: 14px/1.4 Georgia, serif; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
+  #ui { position: fixed; left: 16px; top: 14px; display: flex; flex-wrap: wrap; gap: 6px; max-width: 980px; align-items: center; }
+  #ui b { font: 700 20px/1 Impact, "Arial Narrow", sans-serif; letter-spacing: 1px; margin-right: 10px; color: #f2e9d8; }
+  button { background: #1f2433; color: #efe6d6; border: 0; border-left: 4px solid #e9b23a; padding: 5px 9px; font: inherit; cursor: pointer; }
+  button.on { background: #3a4258; }
+  button.emote { border-left-color: #5fb3e8; }
+  label { margin-left: 8px; }
+  #info { position: fixed; left: 16px; bottom: 12px; opacity: 0.7; font-size: 12px; }
+  body.sheet #ui, body.sheet #info, body.clean #ui, body.clean #info { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <b>NESTMATES CREW</b>
+  <button data-mode="idle" class="on">Idle</button>
+  <button data-mode="walk">Walk</button>
+  <button data-mode="turn">Turn</button>
+  <button data-mode="crouch">Crouch</button>
+  <button data-mode="station">At a station</button>
+  <button data-mode="operate">Operating (reach)</button>
+  <button data-mode="busy">Operating (no reach)</button>
+  <button data-mode="mappoint">Map: pointing</button>
+  <button data-mode="maplean">Map: leaning</button>
+  <button data-mode="mapflicker">Map: cursor on/off</button>
+  <button data-mode="hold">Holding the cat</button>
+  <button id="lineup" class="on">Line-up of 5</button>
+  <button id="sheetBtn">Contact sheet</button>
+  <span id="emotes"></span>
+  <label>Look pitch <input id="pitch" type="range" min="-60" max="70" value="0"></label>
+</div>
+<div id="info"></div>
+<script src="geometry.js"></script>
+<script>
+"use strict";
+const A = window.AVATAR, R = A.rig;
+const cv = document.getElementById("c"), cx = cv.getContext("2d");
+const DEG = Math.PI / 180;
+const hash = new URLSearchParams(location.hash.slice(1));
+
+// ---------------------------------------------------------------- maths (Unity axes: +y up, +z forward, left-handed)
+const lerp = (a, b, t) => a + (b - a) * t, clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const smooth = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+const approach = (x, t, dt, r) => x + (t - x) * (1 - Math.exp(-r * dt));
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const qmul = (a, b) => [a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1], a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+                        a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3], a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]];
+const conj = (q) => [-q[0], -q[1], -q[2], q[3]];
+const ID = [0, 0, 0, 1];
+// as Quaternion.Euler: z, then x, then y
+function euler(x, y, z) {
+  const hx = x * DEG / 2, hy = y * DEG / 2, hz = z * DEG / 2;
+  return qmul(qmul([0, Math.sin(hy), 0, Math.cos(hy)], [Math.sin(hx), 0, 0, Math.cos(hx)]), [0, 0, Math.sin(hz), Math.cos(hz)]);
+}
+function rot(q, v) {
+  const tx = 2 * (q[1]*v[2] - q[2]*v[1]), ty = 2 * (q[2]*v[0] - q[0]*v[2]), tz = 2 * (q[0]*v[1] - q[1]*v[0]);
+  return [v[0] + q[3]*tx + (q[1]*tz - q[2]*ty), v[1] + q[3]*ty + (q[2]*tx - q[0]*tz), v[2] + q[3]*tz + (q[0]*ty - q[1]*tx)];
+}
+const norm = (q) => { const n = 1 / Math.hypot(q[0], q[1], q[2], q[3]); return [q[0]*n, q[1]*n, q[2]*n, q[3]*n]; };
+function fromDown(d) {
+  const l = Math.hypot(d[0], d[1], d[2]), x = d[0] / l, y = d[1] / l, z = d[2] / l;
+  if (1 - y < 1e-4) return [1, 0, 0, 0];
+  return norm([-z, 0, x, 1 - y]);
+}
+function nlerp(a, b, t) { if (a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3] < 0) b = [-b[0], -b[1], -b[2], -b[3]]; return norm(a.map((v, i) => v + (b[i] - v) * t)); }
+// 3x4 matrices, row-major [r00 r01 r02 tx, r10 ...]
+function M(p, q, s) {
+  s = s || [1, 1, 1];
+  const [x, y, z, w] = q, xx = x*x, yy = y*y, zz = z*z, xy = x*y, xz = x*z, yz = y*z, wx = w*x, wy = w*y, wz = w*z;
+  return [(1 - 2*(yy + zz))*s[0], 2*(xy - wz)*s[1], 2*(xz + wy)*s[2], p[0],
+          2*(xy + wz)*s[0], (1 - 2*(xx + zz))*s[1], 2*(yz - wx)*s[2], p[1],
+          2*(xz - wy)*s[0], 2*(yz + wx)*s[1], (1 - 2*(xx + yy))*s[2], p[2]];
+}
+function mul(a, b) {
+  const r = new Array(12);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) r[i*4+j] = a[i*4]*b[j] + a[i*4+1]*b[4+j] + a[i*4+2]*b[8+j] + (j === 3 ? a[i*4+3] : 0);
+  return r;
+}
+const app = (m, x, y, z) => [m[0]*x + m[1]*y + m[2]*z + m[3], m[4]*x + m[5]*y + m[6]*z + m[7], m[8]*x + m[9]*y + m[10]*z + m[11]];
+
+// ---------------------------------------------------------------- one figure (port of AvatarModel)
+const CHECK_HOLD = new URLSearchParams(location.hash.slice(1)).has("checkhold"), CHECK_MAP = new URLSearchParams(location.hash.slice(1)).has("checkmap"); let holdErr = 0, holdSeen = 0;
+const EMOTES = ["", "Wave", "Look here!", "Thumbs up", "Salute", "Shrug", "Cheer", "Nod", "Shake head"];
+const E_LEN = [0, 1.8, 1.7, 1.6, 1.6, 1.6, 2.0, 1.3, 1.4], E_IN = [0, 0.25, 0.2, 0.25, 0.15, 0.3, 0.2, 0.15, 0.15], E_OUT = [0, 0.35, 0.35, 0.35, 0.25, 0.4, 0.4, 0.25, 0.25];
+function rng(seed) { let s = seed * 7919 + 17; return () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }; }
+function hsv(h, s, v) {
+  const i = Math.floor(h * 6), f = h * 6 - i, p = v*(1-s), q = v*(1-f*s), t = v*(1-(1-f)*s);
+  return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i % 6];
+}
+function Figure(seed, hue, x) {
+  const r = rng(seed + 1), rand = (lo, hi) => lo + r() * (hi - lo);
+  return {
+    color: hsv(hue / 256, 0.62, 0.92), x, rand, r,
+    breathPhase: rand(0, 6.28), lookSeed: rand(0, 50), jaunt: rand(3, 8) * (r() < 0.5 ? -1 : 1), shrugSide: r() < 0.5 ? -1 : 1,
+    t: 0, walk: 0, crouch: 0, station: 0, map: 0, point: 0, operate: 0, reachW: 0, handL: 0, handR: 0, idle: 0, still: 0,
+    vf: 0, vl: 0, yawRate: 0, phase: 0, nextBlink: rand(1, 3), blinkT: -1, nextTilt: rand(4, 8), tiltEnd: 0, tiltTarget: 0, tilt: 0,
+    emote: 1, emoteStart: 0.5 + seed * 0.25, pointAt: [0, 0, 0], pointHold: 0, reach: [0, 0, 0],
+    qNeck: ID, qArmL: ID, qArmR: ID, posed: false, tableTop: 1.2, acrossX: 0, acrossZ: 1, lastLean: 0, hold: 0, holdPos: null, holdYaw: 0, tailX: 14, tailXv: 0, tailZ: 0, tailZv: 0,
+  };
+}
+function emote(a, id) { if (id >= 1 && id < EMOTES.length) { a.emote = id; a.emoteStart = a.t; } }
+
+function animate(a, dt, pose, mv, root) {
+  a.t += dt;
+  const k = 1 - Math.exp(-dt * 8);
+  a.vf += (mv.vf - a.vf) * k; a.vl += (mv.vl - a.vl) * k; a.yawRate += (clamp(mv.yawRate, -400, 400) - a.yawRate) * k;
+  const speed = Math.hypot(a.vf, a.vl);
+  const atMap = pose.atMap, operating = pose.operating, station = pose.atConsole && !atMap && !operating;
+  if (atMap && pose.hasPoint) { a.pointAt = pose.point; a.pointHold = 0.6; } else a.pointHold -= dt;
+  const pointing = atMap && a.pointHold > 0, reaching = operating && pose.hasReach;
+  if (reaching) {
+    const j = [pose.reach[0] - a.reach[0], pose.reach[1] - a.reach[1], pose.reach[2] - a.reach[2]];
+    if (a.reachW < 0.05 || dot(j, j) > 2.25) a.reach = pose.reach.slice();
+    else { const kr = 1 - Math.exp(-dt * 12); a.reach = a.reach.map((v, i) => v + j[i] * kr); }
+  }
+  a.walk = approach(a.walk, clamp((speed - 0.15) / 1.6, 0, 1), dt, 6);
+  a.crouch = approach(a.crouch, pose.crouch ? 1 : 0, dt, 10);
+  a.station = approach(a.station, station ? 1 : 0, dt, 4);
+  a.map = approach(a.map, atMap ? 1 : 0, dt, 5);
+  a.point = approach(a.point, pointing ? 1 : 0, dt, pointing ? 7 : 4);
+  a.operate = approach(a.operate, operating ? 1 : 0, dt, 9);
+  a.reachW = approach(a.reachW, reaching ? 1 : 0, dt, 9);
+  a.hold = approach(a.hold, pose.holding ? 1 : 0, dt, 14);
+  a.still = speed < 0.2 && !pose.atConsole && !atMap && !operating ? a.still + dt : 0;
+  a.idle = approach(a.idle, a.still > 5 ? 1 : 0, dt, 1.2);
+  a.phase = (a.phase + dt * speed / 1.1 * Math.PI) % (2 * Math.PI);
+  const sw = Math.sin(a.phase), breath = Math.sin(a.t * (2 * Math.PI / 3.4) + a.breathPhase);
+  const busy = Math.max(a.operate, a.map), work = Math.max(busy, 0.4 * a.station);
+
+  let e = a.emote, te = a.t - a.emoteStart, em = 0;
+  if (e) { if (te >= E_LEN[e]) a.emote = e = 0; else if (te >= 0) em = smooth(te / E_IN[e]) * smooth((E_LEN[e] - te) / E_OUT[e]); }
+  let emLean = 0, emHop = 0, emPitch = 0, emYaw = 0, emRoll = 0, emLook = 0, emLookPitch = 0, emShrug = 0, emEyes = 1;
+  switch (em > 0 ? e : 0) {
+    case 1: emRoll = -8 * em; break;
+    case 2: emLean = 4 * em; emLook = 0.8 * em; emLookPitch = -6; emYaw = 10 * em; break;
+    case 3: emRoll = 7 * em; emPitch = 5 * Math.sin(te * 7) * em; break;
+    case 4: emLean = -4 * em; emLook = em; emLookPitch = -4; break;
+    case 5: emShrug = em; emRoll = 12 * a.shrugSide * em; emLook = 0.5 * em; emLookPitch = -6; emLean = -3 * em; break;
+    case 6: emHop = 0.07 * Math.abs(Math.sin(te * Math.PI * 1.8)) * em * (1 - 0.6 * a.crouch); emLook = 0.7 * em; emLookPitch = -14; emEyes = 1.15; break;
+    case 7: emPitch = 14 * Math.sin(te * 2 * Math.PI * 1.7) * em; break;
+    case 8: emYaw = 24 * Math.sin(te * 2 * Math.PI * 2.1) * em; emEyes = lerp(1, 0.8, em); break;
+  }
+
+  const hipY = lerp(R.hipY, R.hipYCrouch, a.crouch), sy = lerp(1, 0.76, a.crouch) * (1 + 0.012 * breath);
+  const bob = (Math.abs(Math.cos(a.phase)) - 1) * 0.04 * a.walk + emHop;
+  const rig = mul(root.m, M([0, bob, 0], ID));
+  const CR = [-0.24, -0.26, 0.43];   // cradle hand target from the shoulder (right arm), as in AvatarModel
+  const shoulderX = R.shoulderX + 0.01 * a.hold, shoulderY = R.shoulderY * sy + 0.05 * emShrug * (1 - a.hold), shoulderZ = 0.06 * a.hold + 0.06 * a.map * (1 - a.hold);
+  const jabZ = e === 2 ? 0.05 * Math.max(0, Math.sin(te * 12)) * Math.exp(-te * 2) * em * (1 - a.hold) : 0;
+  const sn = Math.sin(root.yaw * DEG), cs = Math.cos(root.yaw * DEG);
+  const toFig = (w) => { const px = w[0] - root.x, py = w[1] - root.y, pz = w[2] - root.z; return [px * cs - pz * sn, py, px * sn + pz * cs]; };
+  if (atMap) {
+    let top = (pose.tableTopY ?? NaN) - root.y; if (!(top > 0.6 && top < 2.0)) top = TABLE_TOP;
+    let ax = 0, az = 1; const wx = pose.tableAcross ? pose.tableAcross[0] : 0, wz = pose.tableAcross ? pose.tableAcross[2] : 0, wl = Math.hypot(wx, wz);
+    if (wl > 0.1) { ax = (wx * cs - wz * sn) / wl; az = (wx * sn + wz * cs) / wl; }
+    if (a.map < 0.05) { a.tableTop = top; a.acrossX = ax; a.acrossZ = az; }
+    else { const kt = 1 - Math.exp(-dt * 6); a.tableTop += (top - a.tableTop) * kt; a.acrossX += (ax - a.acrossX) * kt; a.acrossZ += (az - a.acrossZ) * kt; const al = Math.hypot(a.acrossX, a.acrossZ); if (al > 1e-3) { a.acrossX /= al; a.acrossZ /= al; } }
+  }
+  const railDist = (leanDeg, side, tx, ty, tz) => { const c = Math.cos(leanDeg * DEG), s2 = Math.sin(leanDeg * DEG); return Math.hypot(tx - side * shoulderX, ty - (hipY + bob + shoulderY * c - shoulderZ * s2), tz - (shoulderY * s2 + shoulderZ * c)); };
+  const mapLeanNeeded = (side) => {
+    const qx = side * shoulderX, qz = shoulderZ, k = 0.78 - (qx * a.acrossX + qz * a.acrossZ);
+    const tx = qx + a.acrossX * k, tz = qz + a.acrossZ * k, ty = a.tableTop + 0.066;
+    let lo = 4, hi = 24;
+    if (railDist(lo, side, tx, ty, tz) <= 0.49) return lo;
+    if (railDist(hi, side, tx, ty, tz) > 0.49) { for (let i = 0; i < 12; i++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (railDist(m1, side, tx, ty, tz) > railDist(m2, side, tx, ty, tz)) lo = m1; else hi = m2; } const best = (lo + hi) / 2; return railDist(best, side, tx, ty, tz) > 0.55 ? 10 : best; }
+    for (let i = 0; i < 10; i++) { const mid = (lo + hi) / 2; if (railDist(mid, side, tx, ty, tz) > 0.49) lo = mid; else hi = mid; }
+    return hi;
+  };
+  let lean = clamp(a.vf / 2.5, -1, 1) * 8 * a.walk + clamp(pose.pitch, -60, 70) * 0.12 + 6 * a.crouch + 4 * a.operate * a.reachW + emLean;
+  if (a.map > 0.001) lean += clamp(mapLeanNeeded(a.point > 0.5 ? -1 : 1) - lean, 0, 20) * a.map;
+  let twist = e === 2 ? 8 * em : 0;
+  if (a.point > 0.001) { const pf = toFig(a.pointAt); twist += clamp(Math.atan2(pf[0], pf[2]) / DEG * 0.3, -15, 15) * a.point; }
+  const roll = sw * 3.5 * a.walk - clamp(a.yawRate * 0.02, -6, 6);
+  const qHips = euler(lean, twist, roll);
+  const hips = mul(rig, M([0, hipY, 0], qHips));
+  const out = {};
+  out.coat = mul(hips, M([0, 0, 0], ID, [1, sy, 1]));
+  a.lastLean = lean;
+  const legScale = hipY / R.hipY, legSwing = sw * 26 * a.walk;
+  out.legL = mul(rig, M([-R.hipX, hipY, 0], euler(legSwing, 0, 0), [1, legScale, 1]));
+  out.legR = mul(rig, M([R.hipX, hipY, 0], euler(-legSwing, 0, 0), [1, legScale, 1]));
+
+  if (a.t >= a.nextTilt) { a.tiltTarget = a.rand(6, 12) * (a.r() < 0.5 ? -1 : 1); a.tiltEnd = a.t + a.rand(1.2, 2.2); a.nextTilt = a.t + a.rand(5, 11); }
+  if (a.t >= a.tiltEnd) a.tiltTarget = 0;
+  a.tilt = approach(a.tilt, a.tiltTarget * (1 - work) * (1 - em), dt, 4);
+  const look = 22 * Math.sin(a.t * 0.41 + a.lookSeed) * Math.sin(a.t * 0.17 + a.lookSeed * 0.7);
+  let headPitch = clamp(pose.pitch * 0.8, -32, 56) - lean * 0.5;
+  headPitch = lerp(headPitch, emLookPitch, emLook) + emPitch;
+  let headYaw = clamp(a.yawRate * 0.07, -25, 25) + look * a.idle + emYaw;
+  const figToHips = (f) => rot(conj(qHips), [f[0], f[1] - bob - hipY, f[2]]);
+  if (a.point > 0.001) {
+    const d = figToHips(toFig(a.pointAt)), ex = d[0], ey = d[1] - (R.neckY * sy + 0.2), ez = d[2] - 0.08;
+    headPitch = lerp(headPitch, clamp(Math.atan2(-ey, Math.hypot(ex, ez)) / DEG, -30, 60), 0.85 * a.point);
+    headYaw = lerp(headYaw, clamp(Math.atan2(ex, ez) / DEG, -60, 60), 0.85 * a.point);
+  }
+  const qNeck = euler(headPitch, headYaw, a.tilt + sw * 2 * a.walk + emRoll);
+  a.qNeck = a.posed ? nlerp(a.qNeck, qNeck, 1 - Math.exp(-dt * 20)) : qNeck;
+  const neck = mul(hips, M([0, R.neckY * sy, 0], a.qNeck));
+  out.head = mul(neck, M(R.head, ID, [R.headScale, R.headScale, R.headScale]));
+  out.helmet = mul(out.head, M(R.helmet, euler(-5 + Math.sin(a.phase * 2 - 1.2) * 3 * a.walk, 0, a.jaunt)));
+
+  if (a.t >= a.nextBlink) { a.blinkT = 0; a.nextBlink = a.t + (a.r() < 0.2 ? 0.28 : a.rand(2.2, 6)); }
+  let lid = 1;
+  if (a.blinkT >= 0) { a.blinkT += dt; lid = a.blinkT < 0.07 ? 1 - a.blinkT / 0.07 : a.blinkT < 0.15 ? (a.blinkT - 0.07) / 0.08 : 1; if (a.blinkT >= 0.15) a.blinkT = -1; }
+  out.eyes = mul(out.head, M(R.eyes, ID, [1, lerp(0.08, 1, lid) * lerp(1, 0.6, busy) * lerp(1, 0.85, a.station) * emEyes, 1]));
+
+  const toHips = (w) => figToHips(toFig(w));
+  const railAim = (side) => {
+    const sh = rot(qHips, [side * shoulderX, shoulderY, shoulderZ]), shy = sh[1] + hipY + bob;
+    const k = 0.78 - (sh[0] * a.acrossX + sh[2] * a.acrossZ), tx = sh[0] + a.acrossX * k, tz = sh[2] + a.acrossZ * k, ty = a.tableTop + 0.066;
+    const reach = clamp((0.58 - Math.hypot(tx - sh[0], ty - shy, tz - sh[2])) / 0.08, 0, 1);
+    const q = aim(figToHips([tx, ty, tz]), side);
+    return [q || ID, q ? reach : 0];
+  };
+  const aim = (t, side) => { const d = [t[0] - side * shoulderX, t[1] - shoulderY, t[2] - shoulderZ]; return dot(d, d) > 1e-4 ? fromDown(d) : null; };
+
+  const armSwing = sw * 24 * a.walk + breath * 1.5, roll0 = 7 + 6 * a.crouch - 3 * a.station;
+  const xL = lerp(-armSwing, -26 + breath * 2, a.station), xR = lerp(armSwing, -26 + breath * 2, a.station);
+  const yawIn = 10 * a.station;
+  let qL = euler(xL, yawIn, -roll0), qR = euler(xR, -yawIn, roll0);
+  if (a.map > 0.001) {
+    const [ql, wl] = railAim(-1); qL = nlerp(qL, nlerp(euler(-20, 6, -roll0), ql, wl), a.map);
+    const [qr, wr] = railAim(1); qR = nlerp(qR, nlerp(euler(-20, -6, roll0), qr, wr), a.map);
+  }
+  const generic = a.operate * (1 - a.reachW);
+  if (generic > 0.001) { const f = Math.sin(a.t * 7) * 6; qL = nlerp(qL, euler(-58 - f, 14, -4), generic); qR = nlerp(qR, euler(-58 + f, -14, 4), generic); }
+  if (a.point > 0.001) { const qp = aim(toHips(a.pointAt), 1); if (qp) qR = nlerp(qR, qp, a.point); }
+  const hold = a.operate * a.reachW;
+  if (hold > 0.001) {
+    const t = toHips(a.reach);
+    a.handR = approach(a.handR, t[0] > -0.08 ? 1 : 0, dt, 6);
+    a.handL = approach(a.handL, t[0] < 0.08 ? 1 : 0, dt, 6);
+    const crank = euler(Math.sin(a.t * 5) * 5, 0, Math.cos(a.t * 5) * 4);
+    const qa = aim([t[0] + 0.05, t[1], t[2]], 1); if (qa) qR = nlerp(qR, qmul(qa, crank), hold * a.handR);
+    const qb = aim([t[0] - 0.05, t[1], t[2]], -1); if (qb) qL = nlerp(qL, qmul(qb, crank), hold * a.handL);
+  }
+  const emA = em * (1 - a.hold);
+  if (emA > 0.001) {
+    em = emA;
+    switch (e) {
+      case 1: qR = nlerp(qR, euler(15, 0, 150 + 20 * Math.sin(te * 11)), em); break;
+      case 2: { const qp = fromDown(rot(conj(qHips), [0.309, 0.139, 0.951])), pulse = Math.max(0, Math.sin(te * 12)) * Math.exp(-te * 2); qR = nlerp(qR, qmul(qp, euler(-4 * pulse, 0, 0)), em); break; }
+      case 3: qR = nlerp(qR, euler(-78 + 6 * Math.sin(te * 8), 28, 12), em); break;
+      case 4: { const qs = aim([0.11, R.neckY * sy + 0.27, 0.17], 1); if (qs) qR = nlerp(qR, qs, em); break; }
+      case 5: qL = nlerp(qL, euler(-25, 10, -38), em); qR = nlerp(qR, euler(-25, -10, 38), em); break;
+      case 6: { const pump = 10 * Math.sin(te * 2 * Math.PI * 1.8); qL = nlerp(qL, euler(12, 0, -(160 + pump)), em); qR = nlerp(qR, euler(12, 0, 160 + pump), em); break; }
+    }
+  }
+  if (a.hold > 0.001) {
+    const b = breath * 0.006;
+    const qc = aim([shoulderX + CR[0], shoulderY + CR[1] + b, shoulderZ + CR[2]], 1); if (qc) qR = nlerp(qR, qc, a.hold);
+    const qd = aim([-shoulderX - CR[0], shoulderY + CR[1] + b, shoulderZ + CR[2]], -1); if (qd) qL = nlerp(qL, qd, a.hold);
+  }
+  const ka = 1 - Math.exp(-dt * 18);
+  a.qArmL = a.posed ? nlerp(a.qArmL, qL, ka) : qL;
+  a.qArmR = a.posed ? nlerp(a.qArmR, qR, ka) : qR;
+  out.armL = mul(hips, M([-shoulderX, shoulderY, shoulderZ], a.qArmL));
+  out.armR = mul(hips, M([shoulderX, shoulderY, shoulderZ + jabZ], a.qArmR));
+  a.posed = true;
+  // TryGetHoldPoint: on top of the forearms between the hands, in the world
+  if (a.hold > 0.6) {
+    const l = app(out.armL, 0, -0.5 * 0.88, 0), r = app(out.armR, 0, -0.5 * 0.88, 0);
+    a.holdPos = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2 + 0.072, (l[2] + r[2]) / 2]; a.holdYaw = root.yaw + 90;
+    if (CHECK_HOLD) {   // the C# formula, verbatim, against the matrices above
+      const dn = [0, -0.5 * 0.88, 0], lq = rot(a.qArmL, dn), rq = rot(a.qArmR, dn);
+      const mid = rot(qHips, [(lq[0] + rq[0]) / 2, shoulderY + (lq[1] + rq[1]) / 2, shoulderZ + (lq[2] + rq[2]) / 2]);
+      const fx = mid[0], fy = mid[1] + bob + hipY, fz = mid[2], c = Math.cos(root.yaw * DEG), sn2 = Math.sin(root.yaw * DEG);
+      const cs2 = [root.x + fx * c + fz * sn2, root.y + fy + 0.072, root.z - fx * sn2 + fz * c];
+      holdErr = Math.max(holdErr, Math.hypot(cs2[0] - a.holdPos[0], cs2[1] - a.holdPos[1], cs2[2] - a.holdPos[2]));
+      holdSeen++;
+    }
+  } else a.holdPos = null;
+
+  const tx = 14 + clamp(a.vf * 22, -10, 55) + Math.sin(a.t * 8.3) * 3 * (0.3 + a.walk) - 6 * a.crouch;
+  const tz = clamp(-a.vl * 16 + a.yawRate * 0.06, -35, 35);
+  a.tailXv += ((tx - a.tailX) * 60 - a.tailXv * 9) * dt; a.tailX += a.tailXv * dt;
+  a.tailZv += ((tz - a.tailZ) * 60 - a.tailZv * 9) * dt; a.tailZ += a.tailZv * dt;
+  out.tail = mul(hips, M([0, R.tailY * sy, R.tailZ], euler(a.tailX, 0, a.tailZ)));
+  return out;
+}
+const PIECES = [["coat", "coat"], ["head", "head"], ["eyes", "eyes"], ["helmet", "helmet"], ["armL", "arm"], ["armR", "arm"], ["legL", "leg"], ["legR", "leg"], ["tail", "tail"]];
+const PER_FIGURE = PIECES.reduce((n, [, part]) => n + A.parts[part].subs.reduce((s, x) => s + x.tris.length / 9, 0), 0);
+
+// ---------------------------------------------------------------- props: an assumed map table (top 0.92 m) and a marker for held/pointed points
+function boxTris(min, max) {
+  const c = [(min[0]+max[0])/2, (min[1]+max[1])/2, (min[2]+max[2])/2], P = (i) => [i & 1 ? max[0] : min[0], i & 2 ? max[1] : min[1], i & 4 ? max[2] : min[2]];
+  const out = [];
+  for (const f of [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]]) {
+    const v = f.map(P), m = [0, 1, 2].map(i => (v[0][i] + v[2][i]) / 2 - c[i]);
+    for (const [a, b, d] of [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]) {
+      const u = [b[0]-a[0], b[1]-a[1], b[2]-a[2]], w = [d[0]-a[0], d[1]-a[1], d[2]-a[2]];
+      const n = [u[1]*w[2]-u[2]*w[1], u[2]*w[0]-u[0]*w[2], u[0]*w[1]-u[1]*w[0]];
+      out.push(...a, ...(dot(n, m) >= 0 ? [...b, ...d] : [...d, ...b]));
+    }
+  }
+  return out;
+}
+const TABLE_TOP = 1.20, TABLE = boxTris([-1.4, 0, 0.75], [1.4, TABLE_TOP, 3.35]), TABLE_COL = [0.36, 0.26, 0.17];
+const MARK = boxTris([-0.022, -0.022, -0.022], [0.022, 0.022, 0.022]);
+const catBox = (k) => boxTris([-0.09 * k, 0, -0.225 * k], [0.09 * k, 0.25 * k, 0.225 * k]), CAT = { 1: catBox(1), 0.6: catBox(0.6) }, CAT_COL = [0.78, 0.5, 0.26];
+
+// ---------------------------------------------------------------- what each figure is doing
+// mode: tokens joined with +: walk turn crouch station operate busy mappoint maplean mapflicker
+function scenario(mode, i, t) {
+  const has = (s) => mode.split("+").includes(s);
+  const res = { yaw: 0, mv: { vf: 0, vl: 0, yawRate: 0 }, table: false, marks: [], cat: 0,
+    pose: { pitch: 0, crouch: false, atConsole: false, atMap: false, hasPoint: false, point: [0, 0, 0], operating: false, hasReach: false, reach: [0, 0, 0], holding: false } };
+  const p = res.pose;
+  if (has("walk")) res.mv.vf = 2.2;
+  if (has("turn")) { res.yaw = Math.sin(t * 1.3 + i) * 60; res.mv.yawRate = Math.cos(t * 1.3 + i) * 78; }
+  if (has("crouch")) p.crouch = true;
+  if (has("station")) { p.atConsole = true; p.pitch = 15; }
+  if (has("operate")) { p.operating = true; p.hasReach = true; p.pitch = 20; p.reach = [0.26 + 0.09 * Math.cos(t * 2), 1.12 + 0.09 * Math.sin(t * 2), 0.5]; res.marks.push(p.reach); }
+  if (has("busy")) { p.operating = true; p.pitch = 20; }
+  if (has("mappoint") || has("maplean") || has("mapflicker") || has("mapfar") || has("mapside") || has("mapwide")) {
+    p.atConsole = true; p.atMap = true; p.pitch = 35; res.table = true; p.tableTopY = TABLE_TOP; p.tableAcross = [0, 0, 1]; res.world = true;
+  }
+  if (has("mapfar")) { p.hasPoint = true; p.point = [0.15 * Math.sin(t * 0.7), TABLE_TOP, 2.6]; res.marks.push(p.point); }
+  if (has("mapside")) { p.hasPoint = true; p.point = [1.3, TABLE_TOP, 1.5]; res.marks.push(p.point); }
+  if (has("mapwide")) { p.hasPoint = true; p.point = [1.4, TABLE_TOP, 0.81]; res.marks.push(p.point); res.fixedYaw = true; }
+  if (has("hold") || has("kitten")) { p.holding = true; p.pitch = 18; res.cat = has("kitten") ? 0.6 : 1; }
+  if (has("mappoint") || (has("mapflicker") && t % 2 < 1.1)) {
+    p.hasPoint = true; p.point = [0.35 + 0.3 * Math.sin(t * 0.9 + i), TABLE_TOP, 1.35 + 0.3 * Math.cos(t * 1.3 + i)]; res.marks.push(p.point);
+  }
+  if (p.atMap && p.hasPoint && !res.fixedYaw) res.yaw = clamp(Math.atan2(p.point[0], p.point[2]) / DEG, -50, 50);   // as the mod does: face the point
+  return res;
+}
+
+// ---------------------------------------------------------------- scene setup
+const HUES = [36, 120, 150, 238, 196];   // yellow, green, blue, pink, purple
+const SHEET = hash.has("sheet");
+if (hash.has("clean")) document.body.classList.add("clean");
+const CELLS = [
+  { label: "1 Wave", emote: 1 }, { label: "2 Look here!", emote: 2, yaw: 75 }, { label: "3 Thumbs up", emote: 3, yaw: 35 }, { label: "4 Salute", emote: 4, yaw: 40 }, { label: "5 Shrug", emote: 5, yaw: 15 },
+  { label: "6 Cheer", emote: 6 }, { label: "7 Nod", emote: 7, yaw: 75, at: 0.45 }, { label: "8 Shake head", emote: 8, yaw: 10, at: 0.6 }, { label: "Idle" }, { label: "Walk", mode: "walk", yaw: 100 },
+  { label: "Crouch", mode: "crouch" }, { label: "At a station (resting)", mode: "station", yaw: 60 }, { label: "Operating, hand on it", mode: "operate", yaw: 60 }, { label: "Operating, no point known", mode: "busy", yaw: 60 }, { label: "Map: pointing (near)", mode: "mappoint", yaw: 115, pitch: 12, dist: 3.4 },
+  { label: "Map: leaning on the rail", mode: "maplean", yaw: 100, pitch: 8, dist: 3.4 }, { label: "Salute, crouched at a station", mode: "station+crouch", emote: 4, yaw: 15 }, { label: "Cheer while walking", mode: "walk", emote: 6, yaw: 60, dist: 3.0 }, { label: "Thumbs up while operating", mode: "operate", emote: 3, yaw: 35 }, { label: "Map: pointing far (2.6 m)", mode: "mapfar", yaw: 115, pitch: 12, dist: 3.6 }, { label: "Map: pointing 41 deg aside, body turned", mode: "mapside", yaw: 200, pitch: 25, dist: 3.4 }, { label: "2 Look here!, seen from the front", emote: 2, yaw: 0, pitch: 4 },
+  { label: "Holding the cat", mode: "hold", yaw: 30 }, { label: "Holding, side view", mode: "hold", yaw: 95 }, { label: "Holding, walking", mode: "hold+walk", yaw: 70 },
+  { label: "Holding, crouched", mode: "hold+crouch", yaw: 35 }, { label: "Holding a kitten", mode: "kitten", yaw: 30 }, { label: "Map: pointing 60 deg off the facing", mode: "mapwide", yaw: 150, pitch: 30, dist: 3.4 },
+  { label: "Holding + 7 Nod: the head plays", mode: "hold", emote: 7, yaw: 75, at: 0.45 }, { label: "Holding + 1 Wave: arms stay", mode: "hold", emote: 1, yaw: 30 },
+];
+let lineup = !hash.has("single"), mode = hash.get("mode") || "idle", figures = [], cells = [];
+function setup() {
+  if (SHEET) { document.body.classList.add("sheet"); cells = CELLS.map((c, i) => ({ ...c, fig: Figure(i, HUES[i % 5], 0) })); return; }
+  figures = lineup ? HUES.map((h, i) => Figure(i, h, (i - 2) * 0.95)) : [Figure(0, HUES[0], 0)];
+}
+setup();
+let camYaw = +(hash.get("yaw") || 20), camPitch = +(hash.get("pitch") || 8), camDist = +(hash.get("dist") || (lineup ? 4.2 : 2.6));
+const camTarget = [+(hash.get("tx") || 0), +(hash.get("ty") || 1.05), +(hash.get("tz") || 0)];
+const btns = [...document.querySelectorAll("button[data-mode]")];
+btns.forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+btns.forEach(b => b.onclick = () => { mode = b.dataset.mode; btns.forEach(x => x.classList.toggle("on", x === b)); });
+const emoteAll = (id) => figures.forEach((f, i) => setTimeout(() => emote(f, id), i * 120));
+const eb = document.getElementById("emotes");
+EMOTES.forEach((n, id) => { if (!id) return; const b = document.createElement("button"); b.className = "emote"; b.textContent = id + " " + n; b.onclick = () => emoteAll(id); eb.appendChild(b); });
+window.onkeydown = (e) => { const id = +e.key; if (id >= 1 && id <= 8) emoteAll(id); };
+const lb = document.getElementById("lineup");
+lb.classList.toggle("on", lineup);
+lb.onclick = () => { lineup = !lineup; lb.classList.toggle("on", lineup); setup(); camDist = lineup ? 4.2 : 2.6; };
+document.getElementById("sheetBtn").onclick = () => { location.hash = "sheet"; location.reload(); };
+const pitchIn = document.getElementById("pitch");
+let drag = null;
+cv.onmousedown = e => { drag = [e.clientX, e.clientY, camYaw, camPitch]; cv.style.cursor = "grabbing"; };
+window.onmouseup = () => { drag = null; cv.style.cursor = "grab"; };
+window.onmousemove = e => { if (drag) { camYaw = drag[2] - (e.clientX - drag[0]) * 0.4; camPitch = clamp(drag[3] + (e.clientY - drag[1]) * 0.25, -10, 60); } };
+cv.onwheel = e => { camDist = clamp(camDist * (e.deltaY > 0 ? 1.1 : 0.9), 0.3, 10); e.preventDefault(); };
+
+// ---------------------------------------------------------------- simulation
+let simT = 0, warm = +(hash.get("t") || 0);   // #t=2 runs the animation 2 s ahead first
+const startEmote = +(hash.get("emote") || 0), emoteAt = +(hash.get("at") || 0.7);
+// emote cells: retrigger every 3 s, timed so that after the warm-up (t) the emote is `at` seconds in
+const WARM0 = warm || 4;
+function cellEmote(f, id, at) { const off = ((at - WARM0) % 3 + 3) % 3; f.emote = id; f.emoteStart = f.t - ((f.t + off) % 3); }
+if (startEmote && !SHEET) figures.forEach(f => { f.emote = startEmote; f.emoteStart = Math.max(0, warm - emoteAt); });
+function simulate(dt) {
+  simT += dt;
+  const pitch = +pitchIn.value;
+  const list = SHEET ? cells.map(c => [c.fig, c.mode || "idle", c]) : figures.map(f => [f, mode, null]);
+  list.forEach(([f, md, c], i) => {
+    const s = scenario(md, i, simT);
+    if (!SHEET && !/map|station|operate|busy/.test(md)) s.pose.pitch = pitch;
+    if (c && c.emote) cellEmote(f, c.emote, c.at || 0.7);
+    else if (c) f.emote = 0;
+    const root = { x: f.x, y: 0, z: 0, yaw: s.yaw };
+    root.m = M([f.x, 0, 0], euler(0, s.yaw, 0));
+    // points are given in the figure's own frame: to the world
+    const w = (p) => { if (s.world) return [p[0] + f.x, p[1], p[2]]; const r = rot(euler(0, s.yaw, 0), p); return [r[0] + f.x, r[1], r[2]]; };
+    s.pose.point = w(s.pose.point); s.pose.reach = w(s.pose.reach);
+    f.mats = animate(f, dt, s.pose, s.mv, root);
+    f.scene = s; f.root = root; f.marks = s.marks.map(w);
+  });
+}
+
+// ---------------------------------------------------------------- renderer: a depth buffer, as on the GPU
+const SS = +(hash.get("ss") || 1.5);
+const rgba = (r, g, b) => (255 << 24 | (b & 255) << 16 | (g & 255) << 8 | (r & 255)) >>> 0;
+const BG = hash.get("bg");
+let img = null, px32 = null, depth = null, bg = null, BW = 0, BH = 0;
+function buffers(W, H) {
+  if (W === BW && H === BH) return;
+  BW = W; BH = H; cv.width = W; cv.height = H;
+  img = cx.createImageData(W, H); px32 = new Uint32Array(img.data.buffer); depth = new Float32Array(W * H); bg = new Uint32Array(W * H);
+  if (BG) { const n = parseInt(BG, 16); bg.fill(rgba(n >> 16 & 255, n >> 8 & 255, n & 255)); return; }
+  const stops = [[0, [0x2b, 0x1a, 0x14]], [0.62, [0x4a, 0x2a, 0x1c]], [0.63, [0x1d, 0x13, 0x10]], [1, [0x0f, 0x0a, 0x08]]];
+  for (let y = 0; y < H; y++) {
+    const t = y / H; let k = 0;
+    while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
+    const [t0, c0] = stops[k], [t1, c1] = stops[k + 1], u = clamp((t - t0) / (t1 - t0), 0, 1);
+    bg.fill(rgba(lerp(c0[0], c1[0], u), lerp(c0[1], c1[1], u), lerp(c0[2], c1[2], u)), y * W, (y + 1) * W);
+  }
+}
+// one triangle inside the view's rectangle; z is 1/depth (bigger is nearer), linear across the screen
+function raster(V, x0, y0, z0, x1, y1, z1, x2, y2, z2, col) {
+  const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+  if (Math.abs(area) < 1e-9) return;
+  const inv = 1 / area, W = BW;
+  const minX = Math.max(V.x0, Math.floor(Math.min(x0, x1, x2))), maxX = Math.min(V.x1 - 1, Math.ceil(Math.max(x0, x1, x2)));
+  const minY = Math.max(V.y0, Math.floor(Math.min(y0, y1, y2))), maxY = Math.min(V.y1 - 1, Math.ceil(Math.max(y0, y1, y2)));
+  for (let y = minY; y <= maxY; y++) {
+    const py = y + 0.5;
+    for (let x = minX; x <= maxX; x++) {
+      const qx = x + 0.5;
+      const w0 = ((x1 - qx) * (y2 - py) - (x2 - qx) * (y1 - py)) * inv;
+      if (w0 < 0) continue;
+      const w1 = ((x2 - qx) * (y0 - py) - (x0 - qx) * (y2 - py)) * inv;
+      if (w1 < 0 || w0 + w1 > 1) continue;
+      const z = w0 * z0 + w1 * z1 + (1 - w0 - w1) * z2, i = y * W + x;
+      if (z > depth[i]) { depth[i] = z; px32[i] = col; }
+    }
+  }
+}
+function shadow(V, sx, sy, rx, ry) {
+  const x0 = Math.max(V.x0, Math.floor(sx - rx)), x1 = Math.min(V.x1 - 1, Math.ceil(sx + rx)), y0 = Math.max(V.y0, Math.floor(sy - ry)), y1 = Math.min(V.y1 - 1, Math.ceil(sy + ry));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const d = ((x - sx) / rx) ** 2 + ((y - sy) / ry) ** 2;
+    if (d >= 1) continue;
+    const i = y * BW + x, c = px32[i], k = 1 - 0.5 * (1 - d);
+    px32[i] = rgba((c & 255) * k, (c >> 8 & 255) * k, (c >> 16 & 255) * k);
+  }
+}
+const LIGHT = (() => { const v = [-0.45, 0.75, 0.5], l = Math.hypot(...v); return v.map(x => x / l); })();
+const FILL = (() => { const v = [0.6, 0.2, -0.7], l = Math.hypot(...v); return v.map(x => x / l); })();
+const WARM = [1.0, 0.86, 0.68];
+function shade(glow, col, n) {
+  if (glow) return col.map(c => Math.min(255, c * 255 * 1.15));
+  const d = Math.max(0, dot(n, LIGHT)), f = Math.max(0, dot(n, FILL));
+  return col.map((c, i) => Math.min(255, 255 * c * (0.22 + d * 1.05 * WARM[i] + f * 0.25 * (i === 2 ? 1.1 : 0.8))));
+}
+function camera(V, yawDeg, pitchDeg, dist, tgt) {
+  const cyw = yawDeg * DEG, cp = pitchDeg * DEG;
+  const pos = [tgt[0] + Math.sin(cyw) * Math.cos(cp) * dist, tgt[1] + Math.sin(cp) * dist, tgt[2] + Math.cos(cyw) * Math.cos(cp) * dist];
+  const view = M(pos, euler(pitchDeg, yawDeg + 180, 0));   // the camera's own matrix; its transpose takes world to view
+  const focal = (V.y1 - V.y0) * 1.25, cxp = (V.x0 + V.x1) / 2, cyp = V.y0 + (V.y1 - V.y0) * 0.55;
+  return {
+    V, pos, cp,
+    toView: (p) => { const d = [p[0]-pos[0], p[1]-pos[1], p[2]-pos[2]]; return [view[0]*d[0]+view[4]*d[1]+view[8]*d[2], view[1]*d[0]+view[5]*d[1]+view[9]*d[2], view[2]*d[0]+view[6]*d[1]+view[10]*d[2]]; },
+    sx: (v) => cxp + v[0] / v[2] * focal, sy: (v) => cyp - v[1] / v[2] * focal, focal,
+  };
+}
+function drawTris(C, Mx, t, col, glow) {
+  for (let j = 0; j < t.length; j += 9) {
+    const a = app(Mx, t[j], t[j+1], t[j+2]), b = app(Mx, t[j+3], t[j+4], t[j+5]), c = app(Mx, t[j+6], t[j+7], t[j+8]);
+    const u = [b[0]-a[0], b[1]-a[1], b[2]-a[2]], w = [c[0]-a[0], c[1]-a[1], c[2]-a[2]];
+    let n = [u[1]*w[2]-u[2]*w[1], u[2]*w[0]-u[0]*w[2], u[0]*w[1]-u[1]*w[0]];
+    const nl = Math.hypot(n[0], n[1], n[2]); if (nl < 1e-12) continue; n = [n[0] / nl, n[1] / nl, n[2] / nl];
+    if (n[0]*(C.pos[0]-a[0]) + n[1]*(C.pos[1]-a[1]) + n[2]*(C.pos[2]-a[2]) <= 0) continue;   // back face
+    const va = C.toView(a), vb = C.toView(b), vc = C.toView(c);
+    if (va[2] < 0.05 || vb[2] < 0.05 || vc[2] < 0.05) continue;
+    const sc = shade(glow, col, n);
+    raster(C.V, C.sx(va), C.sy(va), 1 / va[2], C.sx(vb), C.sy(vb), 1 / vb[2], C.sx(vc), C.sy(vc), 1 / vc[2], rgba(sc[0], sc[1], sc[2]));
+  }
+}
+function drawFigure(C, f) {
+  const s0 = C.toView([f.x, 0, 0]);
+  if (s0[2] > 0.1) shadow(C.V, C.sx(s0), C.sy(s0), 0.35 / s0[2] * C.focal, 0.35 / s0[2] * C.focal * Math.max(0.15, Math.sin(C.cp + 0.2)));
+  if (f.scene.table) drawTris(C, M([f.x, 0, 0], ID), TABLE, TABLE_COL, false);
+  for (const p of f.marks) drawTris(C, M(p, ID), MARK, [0.4, 0.9, 1.0], true);
+  if (f.scene.cat && f.holdPos) drawTris(C, M(f.holdPos, euler(0, f.holdYaw, 0)), CAT[f.scene.cat], CAT_COL, false);
+  const cols = A.colors.slice(); cols[4] = f.color;
+  for (const [key, part] of PIECES) for (const sub of A.parts[part].subs) drawTris(C, f.mats[key], sub.tris, cols[sub.mat], sub.mat === 3);
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (warm) { for (let w = 0; w < warm * 60; w++) simulate(1 / 60); warm = 0; } else simulate(dt);
+  const W = Math.round(innerWidth * SS), H = Math.round(innerHeight * SS);
+  buffers(W, H);
+  px32.set(bg); depth.fill(0);
+  const labels = [];
+  if (SHEET) {
+    const cols = 6, rows = Math.ceil(cells.length / cols), cw = Math.floor(W / cols), ch = Math.floor(H / rows);
+    cells.forEach((c, i) => {
+      const V = { x0: (i % cols) * cw, y0: Math.floor(i / cols) * ch, x1: (i % cols + 1) * cw, y1: (Math.floor(i / cols) + 1) * ch };
+      drawFigure(camera(V, c.yaw ?? 25, c.pitch ?? 10, c.dist ?? 2.7, [0, 0.98, 0.15]), c.fig);
+      labels.push([c.label, V.x0 + 12 * SS, V.y0 + 24 * SS]);
+    });
+  } else {
+    const C = camera({ x0: 0, y0: 0, x1: W, y1: H }, camYaw, camPitch, camDist, camTarget);
+    for (const f of figures) drawFigure(C, f);
+  }
+  cx.putImageData(img, 0, 0);
+  if (SHEET) {
+    cx.font = `${Math.round(15 * SS)}px Georgia, serif`; cx.fillStyle = "#efe6d6";
+    for (const [t, x, y] of labels) cx.fillText(t, x, y);
+    cx.strokeStyle = "rgba(0,0,0,0.6)"; cx.lineWidth = 2;
+    const cols = 6, rows = Math.ceil(cells.length / cols);
+    for (let i = 1; i < cols; i++) { cx.beginPath(); cx.moveTo(i * W / cols, 0); cx.lineTo(i * W / cols, H); cx.stroke(); }
+    for (let i = 1; i < rows; i++) { cx.beginPath(); cx.moveTo(0, i * H / rows); cx.lineTo(W, i * H / rows); cx.stroke(); }
+  }
+  if (CHECK_MAP && figures.length) {
+    // the first figure against the table: mitten centres vs the rail, the coat's and the head's most forward points vs the edge plane
+    const f = figures[0], m = f.mats, toF = (w) => { const r = rot(conj(euler(0, f.root.yaw, 0)), [w[0] - f.x, w[1], w[2]]); return r; };
+    const maxZ = (key, part) => { let z = -9; for (const sub of A.parts[part].subs) for (let j = 0; j < sub.tris.length; j += 3) z = Math.max(z, app(m[key], sub.tris[j], sub.tris[j+1], sub.tris[j+2])[2]); return z; };
+    const mL = app(m.armL, 0, -0.5, 0), mR = app(m.armR, 0, -0.5, 0);
+    const fmt = (v) => `(${v.map(x => x.toFixed(2)).join(", ")})`;
+    document.getElementById("info").textContent = `lean ${f.lastLean.toFixed(1)} deg | mitten L ${fmt(mL)} R ${fmt(mR)} (world; rail top 1.20 at z 0.75, mitten centre should be ~1.27) | coat front z ${maxZ("coat", "coat").toFixed(2)} | head front z ${Math.max(maxZ("head", "head"), maxZ("helmet", "helmet")).toFixed(2)}`;
+    requestAnimationFrame(frame); return;
+  }
+  if (CHECK_HOLD) { document.getElementById("info").textContent = `hold point: C# formula vs matrices, max difference ${(holdErr * 1000).toFixed(4)} mm over ${holdSeen} samples`; requestAnimationFrame(frame); return; }
+  document.getElementById("info").textContent = `${PER_FIGURE} triangles and ${PIECES.length} renderers per figure · keys 1-8 emote · drag to orbit, wheel to zoom`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

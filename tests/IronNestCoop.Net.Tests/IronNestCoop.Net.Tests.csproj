@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Dependency-free test runner: `dotnet run` prints one line per test and RESULT: PASS/FAIL. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IronNestCoop.Net\IronNestCoop.Net.csproj" />
+  </ItemGroup>
+</Project>
