@@ -4,7 +4,7 @@ Nestmates 1.0.0 - online co-op for IRON NEST: Heavy Turret Simulator
 Tested against: game build 25664742 (Steam), BepInEx 6.0.0-be.785 IL2CPP x64.
 
 Install (every player)
-  1. Back up your saves: %USERPROFILE%\AppData\LocalLow\<game company>\<game>\ (copy the folder somewhere).
+  1. Back up your saves: %USERPROFILE%\AppData\LocalLow\Iron Nest\Iron Nest_ Heavy Turret Simulator\ (copy the whole folder somewhere).
   2. Install BepInEx 6.0.0-be.785 "Unity IL2CPP win x64" from the official BepInEx builds site into
      <game dir> and start the game once (BepInEx generates its files; the first start is slow).
   3. Remove any other co-op mod from <game dir>\BepInEx\plugins (two co-op mods at once will fight).
