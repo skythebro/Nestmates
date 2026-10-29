@@ -3,6 +3,8 @@
 Online co-op for **IRON NEST: Heavy Turret Simulator**: two or more players crew one turret in the host's
 world. It's a BepInEx 6 (IL2CPP) plugin, a clean-room implementation under the MIT license. No game files are included.
 
+**Download:** [Nestmates on Nexus Mods](https://www.nexusmods.com/ironnest/mods/90). Install steps are in the zip's `README.txt`.
+
 Tested against Steam build 25664742 (Unity 6000.3.21f1, IL2CPP) with BepInEx 6.0.0-be.785.
 
 ## How it works
