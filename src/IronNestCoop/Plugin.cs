@@ -12,7 +12,7 @@ namespace IronNestCoop
     {
         public const string Guid = "io.github.nestmates";
         public const string Name = "Nestmates";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
 
         public static Plugin Instance { get; private set; }
         public static Harmony Harmony { get; private set; }

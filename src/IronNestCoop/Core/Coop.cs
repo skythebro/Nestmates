@@ -52,6 +52,8 @@ namespace IronNestCoop.Core
         DeckOrder = 138,
         MenuState = 139,
         PrinterAlerts = 140,
+        EntityReveal = 141,   // added in 1.0.1: which units the map shows, and where
+        TeleprinterScroll = 142,   // added in 1.0.1: how far each teleprinter's paper is scrolled
     }
 
     /// <summary>One feature's sync logic. Modules are created once and live for the whole game.</summary>

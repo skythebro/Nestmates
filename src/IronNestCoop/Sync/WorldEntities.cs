@@ -28,7 +28,7 @@ namespace IronNestCoop.Sync
         float _nextDigest;
 
         /// <summary>Guest diagnostics for tests and the debug overlay.</summary>
-        public int DigestMismatches, DigestMissing, DigestChecks, Spawned, Corrected;
+        public int DigestMismatches, DigestMissing, DigestChecks, Spawned, Corrected, RevealsApplied;
         public float WorstErrorSeen;
 
         public WorldEntities() { Instance = this; }
@@ -40,11 +40,12 @@ namespace IronNestCoop.Sync
             s.On((ushort)Msg.EntityState, OnState);
             s.On((ushort)Msg.EntityDigest, OnDigest);
             s.On((ushort)Msg.EntityResync, OnResyncRequest);
+            s.On((ushort)Msg.EntityReveal, OnReveal);
         }
 
         public override void OnSessionStart() { _lastMove.Clear(); _announced.Clear(); _announcedEpoch = -1; ResetCounters(); }
 
-        public void ResetCounters() { DigestMismatches = DigestMissing = DigestChecks = Spawned = Corrected = 0; WorstErrorSeen = 0; }
+        public void ResetCounters() { DigestMismatches = DigestMissing = DigestChecks = Spawned = Corrected = RevealsApplied = 0; WorstErrorSeen = 0; }
 
         static FireMission FM => FireMission.Instance;
         static bool GuestReady => Coop.IsGuest && WorldReady.LocalReady;
@@ -203,6 +204,51 @@ namespace IronNestCoop.Sync
                 w.VarI((int)e.State); w.VarI(e.Health);
             }
             WorldReady.SendToReady(Msg.EntityDigest, w, Delivery.Unreliable);
+            if (!LaunchArgs.Mutant("noreveal")) SendReveals();
+        }
+
+        // ------------------------------------------------------------------ map icons (spotting)
+
+        // A unit's map icon only shows once recon has spotted it, and then stays where it was last seen. The game
+        // decides that in each unit's own scan (EntityLocation), which needs mission logic that only runs on the
+        // host, so guests never spotted anything. Once a second the host sends every unit's icon state and
+        // position, and guests put their icons the same way with the game's own restore call.
+
+        static bool IconShown(EntityLocation loc) => loc.VisualRoot != null && loc.VisualRoot.activeSelf;
+
+        static Vector3 IconPos(EntityLocation loc) => loc.VisualRoot != null ? loc.VisualRoot.transform.position : loc.transform.position;
+
+        void SendReveals()
+        {
+            var w = Coop.Writer();
+            w.VarU((ulong)MissionFlow.Instance.Epoch);
+            var list = new List<EntityLocation>();
+            foreach (var e in All()) if (e.Location != null) list.Add(e.Location);
+            w.VarU((ulong)list.Count);
+            foreach (var loc in list)
+            {
+                var p = IconPos(loc);
+                w.Str(loc.Entity.ID); w.Bool(IconShown(loc)); w.Vec3(p.x, p.y, p.z);
+            }
+            WorldReady.SendToReady(Msg.EntityReveal, w, Delivery.Unreliable);
+        }
+
+        void OnReveal(in MsgContext c, NetReader r)
+        {
+            if (!c.FromHost || !ForCurrentEpoch(r)) return;
+            int n = r.Count(2048, "unit icons");
+            for (int i = 0; i < n; i++)
+            {
+                string id = r.Str(256);
+                bool shown = r.Bool();
+                var pos = new Vector3(r.F32(), r.F32(), r.F32());
+                if (!(float.IsFinite(pos.x) && float.IsFinite(pos.y) && float.IsFinite(pos.z))) continue;
+                var loc = Find(id)?.Location;
+                if (loc == null) continue;
+                if (IconShown(loc) == shown && (!shown || (IconPos(loc) - pos).sqrMagnitude < 1e-4f)) continue;
+                Coop.Apply("icon " + id, () => { loc.RestoreVisualState(shown, pos); RevealsApplied++; });
+                CoopLog.Debug($"[entities] icon {id} {(shown ? "shown" : "hidden")} like the host");
+            }
         }
 
         // ------------------------------------------------------------------ guest apply

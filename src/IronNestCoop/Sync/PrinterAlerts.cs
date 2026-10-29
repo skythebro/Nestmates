@@ -32,8 +32,74 @@ namespace IronNestCoop.Sync
 
         public PrinterAlerts() { Instance = this; }
 
-        public override void Register(Session s) => s.On((ushort)Msg.PrinterAlerts, OnMsg);
-        public override void OnSessionStart() { _sent.Clear(); _lastDismiss.Clear(); }
+        public override void Register(Session s)
+        {
+            s.On((ushort)Msg.PrinterAlerts, OnMsg);
+            s.On((ushort)Msg.TeleprinterScroll, OnScroll);
+        }
+        public override void OnSessionStart() { _sent.Clear(); _lastDismiss.Clear(); _scrollOff.Clear(); _scrollers.Clear(); }
+
+        // ------------------------------------------------------------------ teleprinter paper scroll
+
+        // The paper is a slider, and other players see a scroll as a replayed drag. A guest that was paused while
+        // the host scrolled missed that replay and kept its paper where it was, with the newest lines hidden under
+        // the typewriter head. Twice a second the host sends how far each paper is scrolled; a guest whose paper
+        // is still off a second later (so not a replay in flight) puts it there with the game's own restore call.
+
+        static readonly List<TeleprinterScroller> _scrollers = new();
+        static float _nextScrollerScan, _nextScrollSend;
+        readonly Dictionary<string, int> _scrollOff = new();   // guest: how many host updates in a row a paper was off
+        public int ScrollsFixed;
+
+        static List<TeleprinterScroller> Scrollers()
+        {
+            if (Time.unscaledTime >= _nextScrollerScan || _scrollers.Exists(x => x == null))
+            {
+                _nextScrollerScan = Time.unscaledTime + 5f;
+                _scrollers.Clear();
+                foreach (var o in Object.FindObjectsOfType(Il2CppType.Of<TeleprinterScroller>()))
+                {
+                    var t = o.TryCast<TeleprinterScroller>();
+                    if (t != null && !string.IsNullOrEmpty(t.gameObject.scene.name)) _scrollers.Add(t);
+                }
+            }
+            return _scrollers;
+        }
+
+        void SendScrolls()
+        {
+            if (Time.unscaledTime < _nextScrollSend || LaunchArgs.Mutant("noscrollsync")) return;
+            _nextScrollSend = Time.unscaledTime + 0.5f;
+            var list = Scrollers();
+            var w = Coop.Writer(); w.VarU((ulong)MissionFlow.Instance.Epoch);
+            w.VarU((ulong)list.Count);
+            foreach (var t in list) { w.Str(ScenePath.Of(t.transform)); w.F32(t.scrollT); }
+            WorldReady.SendToReady(Msg.TeleprinterScroll, w, Delivery.Unreliable);
+        }
+
+        void OnScroll(in MsgContext c, NetReader r)
+        {
+            if (!c.FromHost || Coop.IsHost || (int)r.VarU() != MissionFlow.Instance.Epoch || !WorldReady.LocalReady) return;
+            int n = r.Count(16, "teleprinters");
+            for (int i = 0; i < n; i++)
+            {
+                string path = r.Str(2048); float t = r.F32();
+                if (!float.IsFinite(t)) continue;
+                TeleprinterScroller s = null;
+                foreach (var x in Scrollers()) if (x != null && ScenePath.Of(x.transform) == path) { s = x; break; }
+                if (s == null) continue;
+                var slider = s.sliderInteractable;
+                bool busy = slider != null && (slider.IsDragging || Controls.Replayed.Contains(slider.Pointer));
+                if (busy || Mathf.Abs(s.scrollT - t) < 0.02f) { _scrollOff[path] = 0; continue; }
+                int off = _scrollOff.TryGetValue(path, out var k) ? k + 1 : 1;
+                _scrollOff[path] = off;
+                if (off < 2) continue;   // off for a whole second: not a scroll still arriving
+                _scrollOff[path] = 0;
+                ScrollsFixed++;
+                CoopLog.Info($"[printeralerts] {s.name}: paper at {s.scrollT:F2}, host at {t:F2} -> put where the host has it");
+                Coop.Apply("teleprinter scroll", () => s.RestoreScroll(t));
+            }
+        }
 
         static readonly List<PrinterAlertSystem> _all = new();
         static float _nextScan;
@@ -71,6 +137,7 @@ namespace IronNestCoop.Sync
 
         public override void Tick(float dt)
         {
+            if (Coop.IsHost && Coop.InSession) SendScrolls();
             if (Off || !Coop.IsHost || Time.unscaledTime < _next || MissionFlow.Phase != MissionManager.GamePhase.MissionActive) return;
             _next = Time.unscaledTime + 0.25f;
             foreach (var a in All())

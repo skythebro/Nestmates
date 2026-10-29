@@ -52,6 +52,7 @@ namespace IronNestCoop.Sync
         {
             _pending.Clear(); _awaitingSince.Clear(); _fallbackAt.Clear(); _captured.Clear();
             _replayGun = -1; _capturingGun = null; LastShot = "";
+            _hostShown.Clear(); _fromHost.Clear(); _watches = null;
         }
         public override void OnSessionEnd() => OnSessionStart();
 
@@ -96,6 +97,7 @@ namespace IronNestCoop.Sync
                     var g = t.guns[i];
                     w.F32(g._CurrentElevation_k__BackingField); w.F32(g.internalDesiredElevation); w.F32(g.elevationChangeVelocity);
                 }
+                WriteWatches(w);   // added in 1.0.1: older readers stop before it
                 WorldReady.SendToReady(Msg.TurretState, w, Delivery.Unreliable);
             }
             if (Coop.IsHost && t != null && Time.unscaledTime >= _nextDigest)
@@ -115,6 +117,83 @@ namespace IronNestCoop.Sync
                     }
                 foreach (var kv in new List<KeyValuePair<int, float>>(_awaitingSince))
                     if (Time.unscaledTime - kv.Value > 5f) _awaitingSince.Remove(kv.Key);
+            }
+        }
+
+        // ------------------------------------------------------------------ stopwatches (host to guests)
+
+        // The stopwatch shows the predicted shell flight time and then counts it down after a shot. Each machine
+        // used to work that out on its own, from its own prediction and its own start time, so a guest's watch
+        // could be 10-15 s off the host's (worse after a pause). Players time their shots with it, so the host
+        // now sends what its watches show ten times a second and guests show exactly that.
+
+        struct WatchShown { public float Seconds; public bool CountingDown; public float At; }
+
+        static readonly Dictionary<IntPtr, float> _hostShown = new();       // host: the last value each watch showed
+        static readonly Dictionary<int, WatchShown> _fromHost = new();      // guest: what the host's watch shows, by gun
+        static List<GunStopwatch> _watches;
+        static float _nextWatchScan;
+
+        static List<GunStopwatch> Watches()
+        {
+            if (_watches == null || Time.unscaledTime >= _nextWatchScan)
+            {
+                _nextWatchScan = Time.unscaledTime + 5f;
+                _watches = new List<GunStopwatch>();
+                foreach (var o in UnityEngine.Object.FindObjectsOfType<GunStopwatch>()) if (o != null) _watches.Add(o);
+            }
+            return _watches;
+        }
+
+        static void WriteWatches(NetWriter w)
+        {
+            var list = LaunchArgs.Mutant("nowatchsync") ? new List<GunStopwatch>() : Watches();
+            var send = new List<(int gun, float secs, bool down)>();
+            foreach (var sw in list)
+            {
+                if (sw == null || !_hostShown.TryGetValue(sw.Pointer, out float secs)) continue;
+                int gun = GunIndex(sw.watchedGun);
+                if (gun < 0 || gun > 250) continue;
+                send.Add((gun, secs, sw.currentState == GunStopwatch.WatchState.CountingDown));
+            }
+            w.U8((byte)send.Count);
+            foreach (var x in send) { w.U8((byte)x.gun); w.F32(x.secs); w.Bool(x.down); }
+        }
+
+        static void ReadWatches(NetReader r)
+        {
+            int n = r.U8();
+            for (int i = 0; i < n; i++)
+            {
+                int gun = r.U8(); float secs = r.F32(); bool down = r.Bool();
+                if (!float.IsFinite(secs) || secs < 0f || secs > 3600f) continue;
+                _fromHost[gun] = new WatchShown { Seconds = secs, CountingDown = down, At = Time.unscaledTime };
+            }
+        }
+
+        /// <summary>Tests: what this machine's stopwatch for a gun shows right now (-1: none).</summary>
+        public static float WatchSeconds(int gun)
+        {
+            foreach (var sw in Watches())
+                if (sw != null && GunIndex(sw.watchedGun) == gun) return sw.GetDisplaySeconds();
+            return -1f;
+        }
+
+        [HarmonyPatch(typeof(GunStopwatch), "GetDisplaySeconds")]
+        static class WatchDisplayPatch
+        {
+            static void Postfix(GunStopwatch __instance, ref float __result)
+            {
+                try
+                {
+                    if (!Coop.InSession) return;
+                    if (Coop.IsHost) { _hostShown[__instance.Pointer] = __result; return; }
+                    if (!_fromHost.TryGetValue(GunIndex(__instance.watchedGun), out var h)) return;
+                    float age = Time.unscaledTime - h.At;
+                    if (age > 1.5f) return;   // the host went quiet: the watch keeps its own time
+                    __result = h.CountingDown ? Mathf.Max(0f, h.Seconds - Mathf.Min(age, 0.3f)) : h.Seconds;
+                }
+                catch (System.Exception e) { CoopLog.PatchFailed("Gunnery.WatchDisplayPatch", e); }
             }
         }
 
@@ -150,6 +229,7 @@ namespace IronNestCoop.Sync
                     g.elevationChangeVelocity = v;
                 });
             }
+            if (r.Remaining > 0) ReadWatches(r);
         }
 
         // ------------------------------------------------------------------ gun digest and full resync
