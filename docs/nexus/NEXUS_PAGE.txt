@@ -18,7 +18,7 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
    [x] Version/build checked against dist/out/Nestmates-1.0.1.zip: 1.0.1, game build 25664742,
-       BepInEx 6.0.0-be.785. Zip SHA-256 c3051222ba30fed72d21f47e2bfb11ccb11ee2ee7e44213e4960b81bb28c7a82.
+       BepInEx 6.0.0-be.785. Zip SHA-256 bb669f517b4311829312935021a936479562694e65a6db9390e00ea9b7727a43.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
@@ -174,6 +174,7 @@ CHANGELOG (Nexus "Logs" tab)
 - Units spotted on the host's tactical map now also show on every guest's map.
 - Guests' stopwatches now match the host's, so shots can be timed from any seat.
 - A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
+- A map line drawn while another player erased one is now shared with everyone (it could stay on one screen only).
 
 1.0.0
 - First public release.
@@ -210,6 +211,7 @@ Nestmates 1.0.1 (patch):
 - Units spotted on the host's tactical map now also show on every guest's map.
 - Guests' stopwatches now match the host's, so shots can be timed from any seat.
 - A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
+- A map line drawn while another player erased one is now shared with everyone (it could stay on one screen only).
 
 
 ---------------------------------------------------------------------------------

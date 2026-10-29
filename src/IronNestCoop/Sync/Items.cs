@@ -76,6 +76,13 @@ namespace IronNestCoop.Sync
             _heldByRemote.Clear();
         }
 
+        /// <summary>The button belongs to this player's own copy of a printed card (its Delete and ticks run here).</summary>
+        internal static bool OwnCopy(Component c)
+        {
+            var d = c != null ? c.GetComponentInParent<DraggableItem>() : null;
+            return d != null && _copies.Contains(d.Pointer);
+        }
+
         static void Show(DraggableItem d) { if (d != null && !d.gameObject.activeSelf) d.gameObject.SetActive(true); }
 
         /// <summary>Under a player's own camera (clipboard, notepad): the same path exists on every machine, but

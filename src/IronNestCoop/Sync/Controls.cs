@@ -687,6 +687,10 @@ namespace IronNestCoop.Sync
             if (!Coop.IsGuest || Coop.Applying) return true;
             string id = ButtonId(b);
             if (Personal(id)) return true;   // a button on the player's own notepad or clipboard (such as a card's Delete) belongs to that player alone
+            // The id is remembered from the first press. A card's buttons first pressed while it lay on the table kept
+            // a table id after the card went back to the notepad, so its Delete went to the host, which doesn't have
+            // this player's copy: the card could not be removed. Where the button is now, and whose card it is, count.
+            if (!LaunchArgs.Mutant("stalebutton") && (Personal(ScenePath.Of(b.transform)) || Items.OwnCopy(b))) return true;
             if (id == null) { CoopLog.Warn("[controls] pressed an unregistered button; running locally"); return true; }
             ClicksForwarded++;
             var w = Coop.Writer(); w.VarU((ulong)MissionFlow.Instance.Epoch); w.Str(id); w.Bool(down);
