@@ -118,6 +118,7 @@ namespace IronNestCoop.QA
             dial.BeginDialDrag(); bool drags = dial.IsDragging; dial.EndDialDrag();
             bot.Note($"guest volume dial: drag starts {drags}, enabled {dial.isActiveAndEnabled}, value {dial.AccumulatedValue}");
             foreach (var x in DragDial(bot, dial, mine)) yield return x;
+            mine = dial.AccumulatedValue;   // where the drag landed (a bot drag lands near the target, not exactly on it)
             bot.Signal("guestvol");
             foreach (var x in bot.Until(() => bot.HasSignal("hostvol"), 30, "host turned its own volume")) yield return x;
             foreach (var x in bot.Wait(1)) yield return x;
