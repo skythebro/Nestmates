@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using IronNestCoop.Core;
 using IronNestCoop.Net.Session;
@@ -60,6 +61,7 @@ namespace IronNestCoop.Sync
         {
             s.On((ushort)Msg.ShotFired, OnEvent);
             s.On((ushort)Msg.TurretState, OnTurretState);
+            s.On((ushort)Msg.MissionStats, OnStats);
         }
 
         static TurretController T => TurretController.Instance;
@@ -100,6 +102,7 @@ namespace IronNestCoop.Sync
                 WriteWatches(w);   // added in 1.0.1: older readers stop before it
                 WorldReady.SendToReady(Msg.TurretState, w, Delivery.Unreliable);
             }
+            if (Coop.IsHost) SendStats();
             if (Coop.IsHost && t != null && Time.unscaledTime >= _nextDigest)
             {
                 _nextDigest = Time.unscaledTime + 2f;
@@ -195,6 +198,56 @@ namespace IronNestCoop.Sync
                 }
                 catch (System.Exception e) { CoopLog.PatchFailed("Gunnery.WatchDisplayPatch", e); }
             }
+        }
+
+        // ------------------------------------------------------------------ mission statistics (host to guests)
+
+        // Shots, hits, misses, destroyed targets and the rest of the end-of-mission numbers are counted by mission
+        // logic that only runs on the host, so a guest's end screen stayed empty. The host sends its mission numbers
+        // whenever they change (and every few seconds anyway); guests show those. Each player's own campaign totals
+        // are left alone.
+
+        string _statsSent = ""; float _nextStats, _statsForce;
+        public int StatsApplied;
+
+        static float[] StatsOf(MissionStatsTracker.Stats m) => new float[]
+        {
+            m.shotsFired, m.targetsDestroyed, m.hitsOnTargets, m.missedShots, m.missionTime, m.accuracy, m.directHits, m.hitStreak, m.maxHitStreak,
+        };
+
+        void SendStats()
+        {
+            var st = MissionStatsTracker.Instance;
+            if (st == null || st.mission == null || Time.unscaledTime < _nextStats || LaunchArgs.Mutant("nostatsync")) return;
+            _nextStats = Time.unscaledTime + 0.5f;
+            var v = StatsOf(st.mission);
+            // mission time ticks every frame: it does not count as a change on its own
+            string key = string.Join("/", v.Take(4)) + "/" + string.Join("/", v.Skip(5));
+            if (key == _statsSent && Time.unscaledTime < _statsForce) return;
+            _statsSent = key; _statsForce = Time.unscaledTime + 5f;
+            var w = Coop.Writer(); w.VarU((ulong)MissionFlow.Instance.Epoch);
+            w.U8((byte)v.Length);
+            foreach (var f in v) w.F32(f);
+            WorldReady.SendToReady(Msg.MissionStats, w);
+        }
+
+        void OnStats(in MsgContext c, NetReader r)
+        {
+            if (!c.FromHost || Coop.IsHost || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
+            int n = r.U8();
+            var v = new float[n];
+            for (int i = 0; i < n; i++) v[i] = r.F32();
+            if (n < 9 || v.Any(f => !float.IsFinite(f) || f < 0f || f > 1e7f)) return;
+            var st = MissionStatsTracker.Instance;
+            if (st == null || st.mission == null) return;
+            Coop.Apply("mission stats", () =>
+            {
+                var m = st.mission;
+                m.shotsFired = (int)v[0]; m.targetsDestroyed = (int)v[1]; m.hitsOnTargets = (int)v[2]; m.missedShots = (int)v[3];
+                m.missionTime = v[4]; m.accuracy = v[5]; m.directHits = (int)v[6]; m.hitStreak = (int)v[7]; m.maxHitStreak = (int)v[8];
+                st.UpdateMissionOdometers();
+            });
+            StatsApplied++;
         }
 
         void OnTurretState(in MsgContext c, NetReader r)

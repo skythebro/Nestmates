@@ -37,6 +37,7 @@ namespace IronNestCoop.QA
             "emotes" => bot.IsHostRole ? EmotesHost(bot) : EmotesGuest(bot),
             "saveexit" => bot.IsHostRole ? SaveExitHost(bot) : SaveExitGuest(bot),
             "fixes101" => bot.IsHostRole ? Fixes101Host(bot) : Fixes101Guest(bot),
+            "mech1705" => bot.IsHostRole ? Mech1705Host(bot) : Mech1705Guest(bot),
             "language" => bot.IsHostRole ? LanguageHost(bot) : LanguageGuest(bot),
             "progress" => bot.IsHostRole ? ProgressHost(bot) : ProgressGuest(bot),
             "cursor" => CursorScenario(bot),
