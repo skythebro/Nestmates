@@ -1,9 +1,9 @@
 NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
 =================================================================================
-!! RELEASE CHECKLIST (current: 1.0.1 patch; 1.0.0 approved by the owner)
+!! RELEASE CHECKLIST (current: 1.0.2; 1.0.0 approved by the owner)
    [x] Source is public on GitHub: https://github.com/skythebro/Nestmates (MIT); linked in the description.
    [x] Renamed to "Nestmates" in the mod itself (plugins\Nestmates\, Nestmates.cfg, Nestmates.log,
-       Nestmates-1.0.1.zip); paths on this page updated.
+       Nestmates-1.0.2.zip); paths on this page updated.
    [x] No slide shows the old "IRONNEST CO-OP" window any more (all gallery shots are new, 2026-10-29).
    [x] Gallery shots 01, 02, 04, 05, 06 done (owner's shots, names blurred, composed 2026-10-29).
    [x] 03_gunnery done (gunnery_map_cheer_106: figure cheering at the tactical map, names blurred, 2026-10-29).
@@ -17,8 +17,8 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
        the description and changelog (build passed QA 2026-10-29).
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
-   [x] Version/build checked against dist/out/Nestmates-1.0.1.zip: 1.0.1, game build 25664742,
-       BepInEx 6.0.0-be.785. Zip SHA-256 a9a03e5edf2b733af5f61db211d7061f6407c765ddcf56ccaa55e19ef72d104a.
+   [x] Version/build checked against dist/out/Nestmates-1.0.2.zip: 1.0.2, game build 25664742,
+       BepInEx 6.0.0-be.785. Zip SHA-256 1785c96e28a0b8c6ce86b3fc43b51b6d1e9b680cc5222d50de13a3539b5551db.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
@@ -45,7 +45,7 @@ Xeltor's GitHub repo.)
 ---------------------------------------------------------------------------------
 VERSION
 ---------------------------------------------------------------------------------
-1.0.1
+1.0.2
 
 
 ---------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ PERMISSIONS & CREDITS
 ---------------------------------------------------------------------------------
 FILE DESCRIPTION (for the uploaded zip, "Main files")
 ---------------------------------------------------------------------------------
-Nestmates 1.0.1 (Nestmates-1.0.1.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
+Nestmates 1.0.2 (Nestmates-1.0.2.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
 Requires BepInEx 6.0.0-be.785 IL2CPP. Every player needs the same version.
 Built for game build [GAME BUILD: 25664742].
 
@@ -123,6 +123,7 @@ Some things could be either shared or separate for each player. For each of thes
 [*][b]Shared record player volume[/b] (default on).
 [*][b]Show hover effects to everyone[/b] (default on).
 [*][b]Share lines drawn on the map[/b] (default on). Off: each player draws on their own map.
+[*][b]Share map measurement notes[/b] (default off). When a measurement line is finished, its bearing and distance note goes onto every player's notepad, not just the drawer's.
 [*][b]Counter-battery timer:[/b] off, 50%, 100%, 200% or 300% of the game's own. More crew, more chaos: give them more time, or less for a challenge.[/list][size=5][b]Pausing[/b][/size]
 A shared world can't freeze for just one player. Opening your menu doesn't stop time, and the game keeps running when you alt-tab. When [b]every[/b] player has their pause menu open, the world pauses for everyone, and it starts again as soon as one of them closes it.[line][size=5][b]Your friends see what you're up to[/b][/size]
 Built in. Nothing to download or set up.
@@ -170,6 +171,13 @@ MIT licensed and written from scratch. No game files are included. Source code, 
 ---------------------------------------------------------------------------------
 CHANGELOG (Nexus "Logs" tab)
 ---------------------------------------------------------------------------------
+1.0.2
+- A guest's newspaper between missions is now the host's issue, with the mission's front page and date.
+- The end-of-mission screen shows the same statistics, medals, kill streaks and kills per impact for every player.
+- New host rule "Share map measurement notes" (off by default).
+- Tested with two guests (three players) across five campaign missions.
+- Everyone in a game needs 1.0.2.
+
 1.0.1
 - Units spotted on the host's tactical map now also show on every guest's map.
 - Guests' stopwatches now match the host's, so shots can be timed from any seat.
@@ -207,15 +215,14 @@ CHANGELOG (Nexus "Logs" tab)
 
 
 ---------------------------------------------------------------------------------
-FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.1)
+FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.2)
 ---------------------------------------------------------------------------------
-Nestmates 1.0.1 (patch):
-- Units spotted on the host's tactical map now also show on every guest's map.
-- Guests' stopwatches now match the host's, so shots can be timed from any seat.
-- A teleprinter paper scrolled by the host while a guest was paused now catches up on that guest.
-- A map line drawn while another player erased one is now shared with everyone (it could stay on one screen only).
-- Your own fire-mission card can be deleted again after you moved it to the table and back to your notepad.
-- Detailed logging and slow-frame warnings are now off by default (new DetailedLog setting under [Logging]; turn it on for bug reports).
+Nestmates 1.0.2:
+- A guest's newspaper between missions is now the host's issue, with the mission's front page and date.
+- The end-of-mission screen shows the same statistics, medals, kill streaks and kills per impact for every player.
+- New host rule "Share map measurement notes" (off by default).
+- Tested with two guests (three players) across five campaign missions.
+- Everyone in a game needs 1.0.2.
 
 
 ---------------------------------------------------------------------------------
