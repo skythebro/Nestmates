@@ -60,7 +60,20 @@ namespace IronNestCoop.QA
                 bot.Signal("stats", $"{st.mission.shotsFired}^{st.mission.hitsOnTargets}^{st.mission.targetsDestroyed}");
             }
 
-            // 4. area effects the mission itself makes (they can't be made by hand): wait a while for one
+            // 4. the records behind the end screen's medals: a shell with a hit, a kill, a custom value
+            var tv = MissionManager.Instance?.CurrentMissionState?.TrackingValues;
+            var unit = FireMission.Instance?.Entities != null ? WorldEntities.All().FirstOrDefault() : null;
+            bot.Check(tv != null && unit != null, "the medal records and a unit exist on the host");
+            if (tv != null && unit != null)
+            {
+                var hits = new Il2CppSystem.Collections.Generic.List<MapEntity>(); hits.Add(unit);
+                tv.TrackShell(new MedalTrackedValues.Data_ShellFired { ShellInstanceId = "qa-shell-1", Hits = hits, ShotAtTime = Time.time });
+                tv.TrackKill(new MedalTrackedValues.Data_KilledEntity { Entity = unit, KilledAtTime = Time.time, ShellInstanceId = "qa-shell-1" });
+                tv.SetCustomValue("qa-value", 7f);
+                bot.Signal("medals", $"{tv.Data_ShellsFired.Count}^{tv.Data_KilledEntities.Count}");
+            }
+
+            // 5. area effects the mission itself makes (they can't be made by hand): wait a while for one
             var fm = FireMission.Instance;
             foreach (var x in bot.Until(() => fm != null && fm.Effectors != null && fm.Effectors.Count > 0, 45, null, soft: true)) yield return x;
             if (fm != null && fm.Effectors != null && fm.Effectors.Count > 0)
@@ -113,6 +126,13 @@ namespace IronNestCoop.QA
                 $"the end-of-mission statistics match the host's (guest {st?.mission?.shotsFired}/{st?.mission?.hitsOnTargets}/{st?.mission?.targetsDestroyed}, host {want[0]}/{want[1]}/{want[2]})");
 
             foreach (var x in bot.Wait(1)) yield return x;
+            foreach (var x in bot.Until(() => bot.HasSignal("medals"), 60, "host recorded a shell and a kill")) yield return x;
+            var mw = bot.SignalValue("medals").Split('^').Select(int.Parse).ToArray();
+            var tv = MissionManager.Instance?.CurrentMissionState?.TrackingValues;
+            foreach (var x in bot.Until(() => tv != null && tv.Data_ShellsFired.Count == mw[0] && tv.Data_KilledEntities.Count == mw[1], 5, null, soft: true)) yield return x;
+            bot.Check(tv != null && tv.Data_ShellsFired.Count == mw[0] && tv.Data_KilledEntities.Count == mw[1] && tv.GetCustomValue("qa-value") == 7f,
+                $"the guest's medal records are the host's (shells {tv?.Data_ShellsFired.Count}/{mw[0]}, kills {tv?.Data_KilledEntities.Count}/{mw[1]}, custom {tv?.GetCustomValue("qa-value")})");
+
             foreach (var x in bot.Until(() => bot.HasSignal("effect"), 90, "host looked for area effects")) yield return x;
             string effs = bot.SignalValue("effect") ?? "";
             if (effs.Length > 0)

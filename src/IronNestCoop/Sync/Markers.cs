@@ -163,7 +163,12 @@ namespace IronNestCoop.Sync
                     if (placer == null || data == null) { CoopLog.Debug($"[markers] cannot show {id} (placer {placerPath})"); return; }
                     int before = placer.placedMarkers.Count;
                     Coop.Apply("marker " + id, () => placer.RestoreMarker(data));
-                    if (placer.placedMarkers.Count > before) { Track(placer.placedMarkers[placer.placedMarkers.Count - 1], id); Added++; }
+                    if (placer.placedMarkers.Count > before)
+                    {
+                        var shown = placer.placedMarkers[placer.placedMarkers.Count - 1];
+                        Track(shown, id); Added++;
+                        if (HostRules.On(Rule.SharedMeasureNotes)) WriteNote(placer, shown);
+                    }
                     CoopLog.Debug($"[markers] showing {id} from slot {c.FromSlot}: placer had {before}, now {placer.placedMarkers.Count}");
                     break;
                 }
@@ -178,6 +183,32 @@ namespace IronNestCoop.Sync
                     break;
                 }
             }
+        }
+
+        public int NotesWritten;
+
+        /// <summary>
+        /// Host rule "share map measurement notes": a measurement line another player finished writes its bearing and
+        /// distance on this player's notepad too. The game's own note writer (MarkerNoteLogger) does it, the same way it
+        /// does for the drawer, so the note looks the same.
+        /// </summary>
+        void WriteNote(MapMarkerPlacer placer, MapMarkerLineUI marker)
+        {
+            try
+            {
+                if (marker == null || string.IsNullOrEmpty(marker.DistanceLabelText)) return;   // not a measurement
+                if (LaunchArgs.Mutant("nomeasurenotes")) return;   // used by the tests to prove the note depends on this
+                // the note writer sits on this player's notepad and listens to every placer's finished lines
+                foreach (var logger in UnityEngine.Object.FindObjectsOfType<MarkerNoteLogger>())
+                {
+                    if (logger == null || !logger.isActiveAndEnabled) continue;
+                    Coop.Apply("measurement note", () => logger.LogMarkerData(marker));
+                    NotesWritten++;
+                    return;
+                }
+                CoopLog.Debug("[markers] no note writer on this notepad: no note");
+            }
+            catch (System.Exception e) { CoopLog.ErrorOnce("markers-note", "[markers] writing a shared measurement note failed: " + e.Message); }
         }
 
         /// <summary>

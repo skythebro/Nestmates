@@ -425,6 +425,7 @@ namespace IronNestCoop.UI
             ToggleRow(layout, toggle, "Shared record player volume", () => HostRules.On(Rule.SharedRecordVolume), v => Settings.SharedRecordVolume = v, CanSetRules);
             ToggleRow(layout, toggle, "Show hover effects to everyone", () => HostRules.On(Rule.SharedHover), v => Settings.SharedHover = v, CanSetRules);
             ToggleRow(layout, toggle, "Share lines drawn on the map", () => HostRules.On(Rule.SharedMapDrawings), v => Settings.SharedMapDrawings = v, CanSetRules);
+            ToggleRow(layout, toggle, "Share map measurement notes", () => HostRules.On(Rule.SharedMeasureNotes), v => Settings.SharedMeasureNotes = v, CanSetRules);
             OptionsRow(layout, options, "Counter-battery timer", TimerNames(),
                 () => Math.Max(0, Array.IndexOf(HostRules.TimerChoices, CanSetRules() ? Settings.CounterBatteryTimerPercent : HostRules.TimerPercent)),
                 i => Settings.CounterBatteryTimerPercent = HostRules.TimerChoices[i], CanSetRules);

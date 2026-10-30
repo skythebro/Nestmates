@@ -55,6 +55,8 @@ namespace IronNestCoop.Core
         EntityReveal = 141,   // added in 1.0.1: which units the map shows, and where
         TeleprinterScroll = 142,   // added in 1.0.1: how far each teleprinter's paper is scrolled
         MissionStats = 143,   // added in 1.0.2: the host's mission statistics (end-of-mission screen)
+        Newspaper = 144,   // added in 1.0.2: the articles the host queues for the newspaper
+        MedalValues = 145,   // added in 1.0.2: kills, shells and punchcards behind the end-screen medals
     }
 
     /// <summary>One feature's sync logic. Modules are created once and live for the whole game.</summary>

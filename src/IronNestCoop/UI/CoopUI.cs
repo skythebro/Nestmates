@@ -438,6 +438,8 @@ namespace IronNestCoop.UI
                 L.Label("When off, a lever that reacts to being looked at only moves for the player looking at it.", Theme.Small);
                 Settings.SharedMapDrawings = L.Toggle(Settings.SharedMapDrawings, "  Share lines drawn on the tactical map", Theme.Toggle);
                 L.Label("When off, everyone draws on their own map and the clear switch only removes your own lines.", Theme.Small);
+                Settings.SharedMeasureNotes = L.Toggle(Settings.SharedMeasureNotes, "  Share map measurement notes", Theme.Toggle);
+                L.Label("A finished measurement line writes its bearing and distance on everyone's notepad, not just the drawer's.", Theme.Small);
                 L.Space(4);
                 L.Label("Counter-battery timer", Theme.Label);
                 var choices = HostRules.TimerChoices;
@@ -457,6 +459,7 @@ namespace IronNestCoop.UI
                 RuleLine(Rule.SharedRecordVolume, "One record player volume for everyone");
                 RuleLine(Rule.SharedHover, "Show hover effects to everyone");
                 RuleLine(Rule.SharedMapDrawings, "Share lines drawn on the tactical map");
+                RuleLine(Rule.SharedMeasureNotes, "Share map measurement notes");
                 L.Label("     Counter-battery timer: " + (HostRules.TimerPercent == 0 ? "off" : TimerName(HostRules.TimerPercent)), Theme.Label);
             }
         }

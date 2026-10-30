@@ -16,6 +16,9 @@ namespace IronNestCoop.Core
         SharedHover = 2,
         /// <summary>Lines drawn on the tactical map are on everyone's map (off: each player draws on their own).</summary>
         SharedMapDrawings = 3,
+        /// <summary>A measurement line's bearing and distance note goes onto every player's notepad, not just the
+        /// drawer's (added in 1.0.2, off by default; needs shared map drawings).</summary>
+        SharedMeasureNotes = 4,
     }
 
     /// <summary>
@@ -46,6 +49,7 @@ namespace IronNestCoop.Core
             if (Settings.SharedRecordVolume) m |= Bit(Rule.SharedRecordVolume);
             if (Settings.SharedHover) m |= Bit(Rule.SharedHover);
             if (Settings.SharedMapDrawings) m |= Bit(Rule.SharedMapDrawings);
+            if (Settings.SharedMeasureNotes) m |= Bit(Rule.SharedMeasureNotes);
             m |= (uint)TimerStep(Settings.CounterBatteryTimerPercent) << TimerShift;
             return m;
         }
@@ -129,6 +133,7 @@ namespace IronNestCoop.Core
         public static string Describe(uint m) =>
             $"cards {((m & Bit(Rule.CardsToOperator)) != 0 ? "to the operator" : "a copy each")}, record volume {((m & Bit(Rule.SharedRecordVolume)) != 0 ? "shared" : "own")}, "
             + $"hover {((m & Bit(Rule.SharedHover)) != 0 ? "shared" : "own")}, map drawings {((m & Bit(Rule.SharedMapDrawings)) != 0 ? "shared" : "own")}, "
+            + $"measurement notes {((m & Bit(Rule.SharedMeasureNotes)) != 0 ? "to everyone" : "to the drawer")}, "
             + $"counter-battery timer {(((m >> TimerShift) & 15) == 0 ? "off" : (((m >> TimerShift) & 15) * 25) + "%")}";
 
         public override string Status => Describe(Mask);

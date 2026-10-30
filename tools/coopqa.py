@@ -27,7 +27,8 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK = os.path.dirname(ROOT)                         # F:\IronNestCoopDev
-COPIES = {'a': os.path.join(WORK, 'game'), 'b': os.path.join(WORK, 'game-b')}
+COPIES = {'a': os.path.join(WORK, 'game'), 'b': os.path.join(WORK, 'game-b'), 'c': os.path.join(WORK, 'game-c')}
+GUEST_SLOTS = ('b', 'c')   # a second guest (--guests=2) uses copy c
 EXE = 'Iron Nest Heavy Turret Simulator.exe'
 PLUGIN_OUT = os.path.join(ROOT, 'src', 'IronNestCoop', 'bin', 'Release', 'net6.0')
 PREFS_KEY = r'HKCU\Software\Iron Nest'
@@ -87,9 +88,16 @@ SKIP_LINK = ('.log',)
 
 
 def setup():
-    a, b = COPIES['a'], COPIES['b']
+    a = COPIES['a']
     if not os.path.isdir(a):
         raise SystemExit(f'missing test copy {a}')
+    for slot in GUEST_SLOTS:
+        link_copy(a, COPIES[slot])
+    deploy()
+
+
+def link_copy(a, b):
+    """A guest copy: hard links to copy a (no extra disk), real copies of the files we rewrite."""
     n = 0
     for root, dirs, files in os.walk(a):
         rel = os.path.relpath(root, a)
@@ -106,8 +114,7 @@ def setup():
             else:
                 os.link(s, d)
             n += 1
-    log(f'copy b ready at {b} ({n} new files, hardlinked)')
-    deploy()
+    log(f'copy ready at {b} ({n} new files, hardlinked)')
 
 
 PLUGIN_DIR = 'Nestmates'                 # BepInEx/plugins/<this> in each test copy
@@ -236,6 +243,7 @@ def new_run_dir(name):
 
 EXTRA = []
 HOST_EXTRA = []
+GUESTS = [1]
 
 
 def smoke(timeout):
@@ -261,11 +269,15 @@ def run(scenario, timeout):
     def body(copies):
         d = new_run_dir(scenario)
         host = Copy('a', d, [f'-coop-host={PORT}', '-coop-id=1', '-coop-name=HostBot', f'-coop-bot={scenario}:host'] + HOST_EXTRA)
-        guest = Copy('b', d, [f'-coop-join=127.0.0.1:{PORT}', '-coop-id=2', '-coop-name=GuestBot', f'-coop-bot={scenario}:guest'] + EXTRA)
-        copies += [host, guest]
+        guests = []
+        for i, slot in enumerate(GUEST_SLOTS[:GUESTS[0]]):
+            name = 'GuestBot' if i == 0 else f'GuestBot{i + 1}'
+            guests.append(Copy(slot, d, [f'-coop-join=127.0.0.1:{PORT}', f'-coop-id={i + 2}', f'-coop-name={name}', f'-coop-bot={scenario}:guest'] + EXTRA))
+        copies += [host] + guests
         host.start()
-        time.sleep(3)
-        guest.start()
+        for g in guests:
+            time.sleep(3)
+            g.start()
         t0 = time.time()
         while time.time() - t0 < timeout:
             for c in copies:
@@ -316,9 +328,13 @@ def main():
     ap.add_argument('--timeout', type=int, default=240)
     ap.add_argument('--extra', default='', help='extra game args, space separated')
     ap.add_argument('--host-extra', default='', help='extra game args for the host copy in run, space separated')
+    ap.add_argument('--guests', type=int, default=1, choices=[1, 2], help='guests in run (2 needs copy c: run setup once)')
     a = ap.parse_args()
     EXTRA.extend(a.extra.split())
     HOST_EXTRA.extend(a.host_extra.split())
+    GUESTS[0] = a.guests
+    if a.guests > 1 and not os.path.isdir(COPIES['c']):
+        raise SystemExit('a second guest needs copy c: run "coopqa.py setup" first')
     if a.cmd == 'setup':
         setup()
         return 0

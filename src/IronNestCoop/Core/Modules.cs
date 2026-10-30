@@ -32,6 +32,8 @@ namespace IronNestCoop.Core
             Coop.Add(new Sync.Toggles());
             Coop.Add(new Sync.Espresso());
             Coop.Add(new Sync.PrinterAlerts());
+            Coop.Add(new Sync.Newspaper());
+            Coop.Add(new Sync.MedalValues());
         }
     }
 

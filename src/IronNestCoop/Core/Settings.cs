@@ -5,7 +5,7 @@ namespace IronNestCoop.Core
     /// <summary>Player-facing options, stored in BepInEx/config/Nestmates.cfg.</summary>
     public static class Settings
     {
-        static ConfigEntry<bool> _devTools, _nameTags, _hud, _cardsLocal, _cat, _mapPresence, _verbose, _sharedVolume, _sharedHover, _sharedDrawings;
+        static ConfigEntry<bool> _devTools, _nameTags, _hud, _cardsLocal, _cat, _mapPresence, _verbose, _sharedVolume, _sharedHover, _sharedDrawings, _sharedNotes;
         static ConfigEntry<int> _timerPct;
         static ConfigEntry<bool> _skipIntro, _steamStatus, _steamStation, _discordStatus, _joinToasts, _ownCatTag, _hideCodes, _emoteKeys, _discordJoin;
         static ConfigEntry<string> _discordApp, _discordImage;
@@ -34,6 +34,7 @@ namespace IronNestCoop.Core
             _cardsLocal = cfg.Bind("Host", "CardsToComputerOnly", false, "Fire-mission cards go only to the player who pressed Calculate (the computer operator).");
             _sharedVolume = cfg.Bind("Host", "SharedRecordVolume", true, "One record player volume for everyone. Off: each player sets how loud they hear the record player.");
             _sharedHover = cfg.Bind("Host", "SharedHoverEffects", true, "Hover effects (a lever pulling its clamp back while looked at) show for everyone. Off: only for the player looking.");
+            _sharedNotes = cfg.Bind("Host", "SharedMeasureNotes", false, "When a measurement line on the map is finished, its bearing and distance note goes onto every player's notepad, not just the drawer's. Needs SharedMapDrawings.");
             _sharedDrawings = cfg.Bind("Host", "SharedMapDrawings", true, "Lines drawn on the tactical map are on everyone's map. Off: each player draws on their own map.");
             _timerPct = cfg.Bind("Host", "CounterBatteryTimerPercent", 100, "Length of the counter-battery timer in co-op, in percent of the game's own: 0 (off: it stays paused), 50, 100, 200 or 300 (other values go to the nearest). More players, more chaos: give them more time, or less for a challenge.");
             _hue = cfg.Bind("Player", "Hue", -1, "Your colour as a hue around the colour wheel (0-255). Pick it in the co-op window. No two players can share one.");
@@ -69,6 +70,7 @@ namespace IronNestCoop.Core
 
         public static bool SharedRecordVolume { get => _sharedVolume?.Value ?? true; set { if (_sharedVolume != null) _sharedVolume.Value = value; } }
         public static bool SharedHover { get => _sharedHover?.Value ?? true; set { if (_sharedHover != null) _sharedHover.Value = value; } }
+        public static bool SharedMeasureNotes { get => _sharedNotes?.Value ?? false; set { if (_sharedNotes != null) _sharedNotes.Value = value; } }
         public static bool SharedMapDrawings { get => _sharedDrawings?.Value ?? true; set { if (_sharedDrawings != null) _sharedDrawings.Value = value; } }
         public static int CounterBatteryTimerPercent { get => HostRules.NearestTimerChoice(_timerPct?.Value ?? 100); set { if (_timerPct != null) _timerPct.Value = HostRules.NearestTimerChoice(value); } }
 
