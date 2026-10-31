@@ -218,10 +218,20 @@ class Copy:
             return None
 
 
+def steam_running():
+    out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq steam.exe', '/NH'], capture_output=True, text=True).stdout
+    return 'steam.exe' in out.lower()
+
+
 def guarded(fn):
     running = game_running()
     if running:
         raise SystemExit('refusing to start: a game process is already running:\n' + '\n'.join(running))
+    # A modded test game that finds Steam closed starts Steam itself, and that Steam inherits the game's
+    # DOORSTOP_DISABLE=TRUE: every game Steam launches afterwards runs without BepInEx (2026-10-30).
+    if not steam_running():
+        raise SystemExit('refusing to start: Steam is not running. Start Steam normally first '
+                         '(a test game would start it with BepInEx turned off for every later Steam launch).')
     saved = read_prefs()
     with open(os.path.join(WORK, 'local', 'prefs-before-last-qa.json'), 'w') as fh:
         json.dump({k: [repr(v[0]), v[1]] for k, v in saved.items()}, fh)
