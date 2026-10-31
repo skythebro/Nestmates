@@ -183,7 +183,8 @@ namespace IronNestCoop.Sync
             var mG = FindMission(opG, mission);
             if (opG == null || mG == null)
             {
-                CoopLog.Error($"[mission] cannot follow host: operation '{op}' / mission '{mission}' not found (different game version?)");
+                CoopLog.Error($"[mission] cannot follow host: operation '{op}' / mission '{mission}' not found (different game version, or a mission loaded from files?)");
+                UI.Notify.Show("Can't follow the host into this mission: your game doesn't have it (different game version or a custom mission).");
                 return;
             }
             CoopLog.Info($"[mission] following host into '{mission}' (epoch {epoch}{(join ? ", joining in progress" : "")})");
