@@ -275,6 +275,30 @@ namespace IronNestCoop.Steam
             return Encoding.UTF8.GetString(buf, 0, len);
         }
 
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool GetNamedPipeServerProcessId(IntPtr pipe, out uint processId);
+
+        /// <summary>The name of the program that owns the pipe's server end, or null if it can't be found out.</summary>
+        static string PipeOwner(NamedPipeClientStream p)
+        {
+            try
+            {
+                if (!GetNamedPipeServerProcessId(p.SafePipeHandle.DangerousGetHandle(), out uint pid)) return null;
+                using var proc = System.Diagnostics.Process.GetProcessById((int)pid);
+                return proc.ProcessName;
+            }
+            catch (Exception) { return null; }
+        }
+
+        /// <summary>Discord (stable, PTB, Canary, development) and the common third-party Discord clients that offer
+        /// the same local connection.</summary>
+        static bool IsDiscordClient(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            string n = name.ToLowerInvariant();
+            return n.StartsWith("discord") || n == "vesktop" || n == "legcord" || n == "armcord" || n == "webcord" || n == "equibop";
+        }
+
         static NamedPipeClientStream Connect(string appId, byte[] buf)
         {
             for (int i = 0; i < 10; i++)
@@ -282,6 +306,14 @@ namespace IronNestCoop.Steam
                 var p = new NamedPipeClientStream(".", "discord-ipc-" + i, PipeDirection.InOut, PipeOptions.Asynchronous);
                 try { p.Connect(200); }
                 catch (Exception) { p.Dispose(); continue; }
+                // Only talk to Discord itself: any program could open a pipe with this name and would then receive
+                // the handshake and every status update (mission, lobby id).
+                string owner = PipeOwner(p);
+                if (!IsDiscordClient(owner))
+                {
+                    CoopLog.ErrorOnce("discord-owner-" + i, $"[discord] discord-ipc-{i} belongs to '{owner ?? "unknown"}', not Discord: skipped");
+                    p.Dispose(); continue;
+                }
                 try
                 {
                     Write(p, OpHandshake, "{\"v\":1,\"client_id\":\"" + appId + "\"}");

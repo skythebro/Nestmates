@@ -218,7 +218,7 @@ namespace IronNestCoop.Sync
         void OnToggles(in MsgContext c, NetReader r)
         {
             if (c.FromSlot == Coop.Session.LocalSlot || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
-            if (!(Coop.IsHost || (c.FromHost && WorldReady.LocalReady))) return;   // guests take the host's word only
+            if (!(Coop.IsHost ? WorldReady.SenderReady(c) : (c.FromHost && WorldReady.LocalReady))) return;   // guests take the host's word only
             var op = (Op)r.U8();
             if (op == Op.DismissAlerts) { OnDismiss(c, r); return; }
             Scan();
@@ -250,9 +250,17 @@ namespace IronNestCoop.Sync
 
         /// <summary>Walking up to a printer dismisses its alert lamps (a trigger zone, so on that player's machine
         /// only): dismissing is shared, so the lamp goes out for everyone once someone has gone to read it.</summary>
+        readonly Dictionary<byte, float> _nextDismiss = new();
+
         void OnDismiss(in MsgContext c, NetReader r)
         {
-            string path = r.Str(2048);
+            if (Coop.IsHost)
+            {
+                // a player walks up to a printer a few times a minute at most; more is a broken or hostile game
+                if (_nextDismiss.TryGetValue(c.FromSlot, out var next) && Time.unscaledTime < next) return;
+                _nextDismiss[c.FromSlot] = Time.unscaledTime + 0.5f;
+            }
+            string path = r.Str(512);
             var sys = ScenePath.Find(path)?.GetComponent<PrinterAlertSystem>();
             if (sys == null) return;
             Coop.Apply("dismiss alerts " + path, () => sys.DismissAllAlerts());

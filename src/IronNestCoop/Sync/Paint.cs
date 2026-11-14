@@ -79,7 +79,7 @@ namespace IronNestCoop.Sync
         void OnPaint(in MsgContext c, NetReader r)
         {
             if (c.FromSlot == Coop.Session.LocalSlot || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
-            if (!(WorldReady.LocalReady || Coop.IsHost)) return;
+            if (!WorldReady.SenderReady(c)) return;
             byte painter = r.U8();
             if (!c.FromHost) painter = c.FromSlot;          // a guest speaks only for itself
             if (painter == Coop.Session.LocalSlot) return;   // my own paint, passed back: already on my shell

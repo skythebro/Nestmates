@@ -58,6 +58,17 @@ namespace IronNestCoop.QA
                 foreach (var x in bot.Until(() => p.playButton != null && p.playButton.isActive, 15, "play button active")) yield return x;
                 foreach (var x in Press(bot, p.playButton)) yield return x;
             }
+            // medal records made before the guest joins (end screen): a shell with a hit, a kill, a custom value, an enemy total
+            var tv = MissionManager.Instance?.CurrentMissionState?.TrackingValues;
+            var unit = WorldEntities.All().FirstOrDefault();
+            if (tv != null && unit != null)
+            {
+                var hits = new Il2CppSystem.Collections.Generic.List<MapEntity>(); hits.Add(unit);
+                tv.TrackShell(new MedalTrackedValues.Data_ShellFired { ShellInstanceId = "qa-late-shell", Hits = hits, ShotAtTime = Time.time });
+                tv.TrackKill(new MedalTrackedValues.Data_KilledEntity { Entity = unit, KilledAtTime = Time.time, ShellInstanceId = "qa-late-shell" });
+                tv.SetCustomValue("qa-late", 5f);
+                if (tv.TotalEnemyCount == 0) tv.TotalEnemyCount = 9;
+            }
             foreach (var x in bot.Wait(4)) yield return x;
             bot.Note("host world before the guest joins: " + LateState(out var u0) + " ; units " + u0);
 
@@ -70,6 +81,7 @@ namespace IronNestCoop.QA
             bot.Signal("state", state);
             bot.Signal("units", units);
             if (token != null) bot.Signal("token", ItemId.Of(token) + "^" + Where(token));
+            if (tv != null) bot.Signal("medals", $"{tv.Data_ShellsFired.Count}^{tv.Data_KilledEntities.Count}^{tv.TotalEnemyCount}^{tv.GetCustomValue("qa-late")}");
             foreach (var x in bot.Until(() => bot.HasSignal("verdict"), 90, "guest verdict")) yield return x;
             MissionManager.Instance.EndOperationAndReturnToMenu();
             bot.Signal("done");
@@ -93,6 +105,13 @@ namespace IronNestCoop.QA
                 var t = bot.SignalValue("token").Split('^');
                 var d = ItemId.Find<DraggableItem>(t[0]);
                 bot.Check(d != null && SamePlace(Where(d), t[1]), $"late joiner sees the moved map token ({Where(d)} vs {t[1]})");
+            }
+            if (bot.HasSignal("medals"))
+            {
+                var tv = MissionManager.Instance?.CurrentMissionState?.TrackingValues;
+                string mineM = tv == null ? "-" : $"{tv.Data_ShellsFired.Count}^{tv.Data_KilledEntities.Count}^{tv.TotalEnemyCount}^{tv.GetCustomValue("qa-late")}";
+                bot.Check(mineM == bot.SignalValue("medals"),
+                    $"late joiner has the medal records made before it joined (shells^kills^enemy total^custom: {mineM} vs {bot.SignalValue("medals")})");
             }
             bot.Note($"music drift {Music.Instance.LastDrift:F2} s");
             bot.Signal("verdict");

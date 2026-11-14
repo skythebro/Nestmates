@@ -328,7 +328,7 @@ namespace IronNestCoop.Sync
             if (Coop.IsHost)
             {
                 // Guests only ask for a resync or toggle auto-reload (which then runs here, on the real gun).
-                if ((int)r.VarU() != MissionFlow.Instance.Epoch) return;
+                if ((int)r.VarU() != MissionFlow.Instance.Epoch || !WorldReady.SenderReady(c)) return;
                 var hev = (Ev)r.U8();
                 if (hev == Ev.Full) SendSnapshot(c.FromSlot);
                 else if (hev == Ev.AutoReload)

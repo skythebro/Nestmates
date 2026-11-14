@@ -169,7 +169,7 @@ namespace IronNestCoop.Sync
 
         void OnMsg(in MsgContext c, NetReader r)
         {
-            if (Off || (int)r.VarU() != MissionFlow.Instance.Epoch || !(WorldReady.LocalReady || Coop.IsHost)) return;
+            if (Off || (int)r.VarU() != MissionFlow.Instance.Epoch || !WorldReady.SenderReady(c)) return;
             var ev = (Ev)r.U8();
             string path = r.Str(2048);
             var a = ScenePath.Find(path)?.GetComponent<PrinterAlertSystem>();

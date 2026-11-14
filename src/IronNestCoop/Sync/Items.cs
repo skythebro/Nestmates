@@ -204,15 +204,28 @@ namespace IronNestCoop.Sync
         /// All drag surfaces, the sender's actual surface first: the game's restore picks the FIRST surface whose
         /// tag matches, several surfaces share a tag, and the search order differs between machines.
         /// </summary>
+        static readonly SlotLimiter PlaceLimit = new SlotLimiter(perSecond: 10f, burst: 40f);
+
+        // the scene's drag surfaces, searched at most every 2 s (a scene search per received placement was costly)
+        static Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<UnityEngine.Object> _surfacesFound;
+        static float _surfacesAt = -10f;
+        static int _surfacesScene = -1;
+
         static Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<DragSurface> Surfaces(string preferredPath)
         {
-            var found = UnityEngine.Object.FindObjectsOfType(Il2CppType.Of<DragSurface>(), true);
+            int scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle;
+            if (_surfacesFound == null || scene != _surfacesScene || Time.unscaledTime - _surfacesAt > 2f)
+            {
+                _surfacesFound = UnityEngine.Object.FindObjectsOfType(Il2CppType.Of<DragSurface>(), true);
+                _surfacesAt = Time.unscaledTime; _surfacesScene = scene;
+            }
+            var found = _surfacesFound;
             var list = new List<DragSurface>(found.Length);
             DragSurface first = null;
             var pref = preferredPath == null ? null : ScenePath.Find(preferredPath);
             if (pref != null) first = pref.GetComponent<DragSurface>();
             if (first != null) list.Add(first);
-            foreach (var o in found) { var ds = o.TryCast<DragSurface>(); if (ds != null && (first == null || ds.Pointer != first.Pointer)) list.Add(ds); }
+            foreach (var o in found) { var ds = o == null ? null : o.TryCast<DragSurface>(); if (ds != null && (first == null || ds.Pointer != first.Pointer)) list.Add(ds); }
             var arr = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<DragSurface>(list.Count);
             for (int i = 0; i < list.Count; i++) arr[i] = list[i];
             return arr;
@@ -340,7 +353,7 @@ namespace IronNestCoop.Sync
         void OnEvent(in MsgContext c, NetReader r)
         {
             if (c.FromSlot == Coop.Session.LocalSlot || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
-            if (!(WorldReady.LocalReady || Coop.IsHost)) return;
+            if (!WorldReady.SenderReady(c)) return;
             var ev = (Ev)r.U8();
             switch (ev)
             {
@@ -358,7 +371,9 @@ namespace IronNestCoop.Sync
                 }
                 case Ev.Place:
                 {
-                    string id = r.Str(2048), surface = r.Str(2048), json = r.Str(1 << 20), slotPath = r.Str(2048);
+                    // a placement is a few hundred bytes of JSON; a player puts things down a few times a second at most
+                    string id = r.Str(2048), surface = r.Str(2048), json = r.Str(64 << 10), slotPath = r.Str(2048);
+                    if (!c.FromHost && !PlaceLimit.Allow(c.FromSlot)) { CoopLog.Debug($"[items] slot {c.FromSlot} places too fast: dropped"); return; }
                     var slotRot = Music.ReadRot(r);
                     var d = ItemId.Find<DraggableItem>(id);
                     if (d == null) { CoopLog.Debug($"[items] unknown item {id}"); return; }

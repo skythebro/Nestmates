@@ -18,6 +18,10 @@ namespace IronNestCoop.Net.Session
         public const int MaxMessageBytes = 16 << 20;
         /// <summary>A partial message not completed within this many seconds is dropped.</summary>
         public const double PendingTimeoutSec = 60;
+        /// <summary>All of one peer's partial messages together may not hold more than this.</summary>
+        public const long MaxPendingBytesPerPeer = MaxMessageBytes * 2L;
+        /// <summary>How many completed message ids are remembered per peer, so re-sent pieces can't deliver one twice.</summary>
+        const int RememberedIds = 256;
 
         sealed class Pending
         {
@@ -29,6 +33,8 @@ namespace IronNestCoop.Net.Session
 
         readonly Dictionary<(ulong, uint), Pending> _pending = new();
         readonly Dictionary<ulong, int> _pendingCount = new();
+        readonly Dictionary<ulong, long> _pendingBytes = new();
+        readonly Dictionary<ulong, (HashSet<uint> Set, Queue<uint> Order)> _done = new();
         uint _nextId = 1;
 
         public IEnumerable<byte[]> Split(byte[] packet, int maxPayload)
@@ -64,6 +70,7 @@ namespace IronNestCoop.Net.Session
             var data = r.Raw(r.Remaining);
 
             var key = (from, id);
+            if (_done.TryGetValue(from, out var done) && done.Set.Contains(id)) return null;   // already delivered: a replayed piece
             if (!_pending.TryGetValue(key, out var p))
             {
                 _pendingCount.TryGetValue(from, out int n);
@@ -75,10 +82,13 @@ namespace IronNestCoop.Net.Session
             if (p.Pieces.Length != count) throw new MalformedMessageException("fragment count changed");
             if (p.Pieces[index] != null) return null; // duplicate
             p.Pieces[index] = data; p.Received++; p.Bytes += data.Length;
+            _pendingBytes.TryGetValue(from, out long pb); _pendingBytes[from] = pb += data.Length;
             if (p.Bytes > MaxMessageBytes) { Drop(key); throw new MalformedMessageException($"fragmented message over {MaxMessageBytes} bytes"); }
+            if (pb > MaxPendingBytesPerPeer) { Drop(key); throw new MalformedMessageException($"partial messages over {MaxPendingBytesPerPeer} bytes"); }
             if (p.Received < count) return null;
 
             Drop(key);
+            Remember(from, id);
             var whole = new byte[p.Bytes];
             int off = 0;
             foreach (var piece in p.Pieces) { Buffer.BlockCopy(piece, 0, whole, off, piece.Length); off += piece.Length; }
@@ -87,8 +97,17 @@ namespace IronNestCoop.Net.Session
 
         void Drop((ulong, uint) key)
         {
-            if (!_pending.Remove(key)) return;
+            if (!_pending.Remove(key, out var p)) return;
             if (_pendingCount.TryGetValue(key.Item1, out int n)) _pendingCount[key.Item1] = Math.Max(0, n - 1);
+            if (_pendingBytes.TryGetValue(key.Item1, out long b)) _pendingBytes[key.Item1] = Math.Max(0, b - p.Bytes);
+        }
+
+        void Remember(ulong from, uint id)
+        {
+            if (!_done.TryGetValue(from, out var d)) _done[from] = d = (new HashSet<uint>(), new Queue<uint>());
+            if (!d.Set.Add(id)) return;
+            d.Order.Enqueue(id);
+            if (d.Order.Count > RememberedIds) d.Set.Remove(d.Order.Dequeue());
         }
 
         /// <summary>Drop partial messages older than <see cref="PendingTimeoutSec"/>. Returns how many.</summary>
@@ -109,6 +128,8 @@ namespace IronNestCoop.Net.Session
             foreach (var k in _pending.Keys) if (k.Item1 == peer) dead.Add(k);
             foreach (var k in dead) _pending.Remove(k);
             _pendingCount.Remove(peer);
+            _pendingBytes.Remove(peer);
+            _done.Remove(peer);
         }
     }
 }

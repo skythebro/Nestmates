@@ -221,20 +221,38 @@ namespace IronNestCoop.Net.Session
 
         // ------------------------------------------------------------------ pump
 
+        /// <summary>Most packets / bytes handled in one Tick; the rest wait for the next frame, in order (a flood
+        /// from one peer must not freeze the game for a whole frame).</summary>
+        public const int MaxPacketsPerTick = 1000;
+        public const long MaxBytesPerTick = 2L << 20;
+        readonly Queue<Packet> _backlog = new();
+        /// <summary>Ticks that left packets for the next frame (diagnostics).</summary>
+        public int DeferredTicks { get; private set; }
+
         public void Tick()
         {
             if (State == SessionState.Idle || State == SessionState.Closed) return;
             double now = LocalTime;
-            _rx.Clear();
-            _t.Poll(_rx);
-            foreach (var p in _rx)
+            // Take new packets only when the last frame's are all handled: what's still waiting stays in the transport
+            // (bounded per connection) instead of piling up here.
+            if (_backlog.Count == 0)
             {
+                _rx.Clear();
+                _t.Poll(_rx);
+                foreach (var p in _rx) _backlog.Enqueue(p);
+            }
+            int packets = 0; long bytes = 0;
+            while (_backlog.Count > 0 && packets < MaxPacketsPerTick && bytes < MaxBytesPerTick)
+            {
+                var p = _backlog.Dequeue();
+                packets++; bytes += p.Data.Length;
                 PacketsReceived++; BytesReceived += p.Data.Length;
                 try { Handle(p.From, p.Data, p.Delivery, now); }
                 catch (MalformedMessageException e) { MalformedDropped++; EmitLimited($"dropped malformed packet from {p.From}: {e.Message}", now); }
                 catch (Exception e) { EmitLimited($"packet from {p.From} failed: {e}", now); }   // one bad packet must not drop the rest
-                if (State == SessionState.Closed) return;
+                if (State == SessionState.Closed) { _backlog.Clear(); return; }
             }
+            if (_backlog.Count > 0) DeferredTicks++;
             if (_frag.Expire(now) > 0) Emit("dropped an incomplete fragmented message (timed out)");
             if (Role == SessionRole.Guest) TickGuest(now); else TickHost(now);
         }
@@ -328,7 +346,7 @@ namespace IronNestCoop.Net.Session
             string name = Sanitize(r.Str(256));
             byte[] info = r.Bytes(Protocol.MaxInfoBytes);
 
-            if (_byPeer.TryGetValue(from, out var existing)) { SendWelcome(existing); return; } // hello retry
+            if (_byPeer.TryGetValue(from, out var existing)) { _frag.Forget(from); SendWelcome(existing); return; } // hello retry, or a reconnect: its message ids start over
 
             string reason = null;
             if (proto != Protocol.Version || ver != ModVersion)
@@ -514,7 +532,7 @@ namespace IronNestCoop.Net.Session
             var body = new NetReader(pkt, 5, pkt.Length - 5);
             try { h(new MsgContext(origin, d), body); }
             catch (MalformedMessageException) { throw; }
-            catch (Exception e) { Emit($"handler for message {type} threw: {e}"); }
+            catch (Exception e) { EmitLimited($"handler for message {type} from slot {origin} threw: {e}", LocalTime); }   // rate-limited: a peer can trigger it
         }
 
         /// <summary>Player names: no control characters (CR/LF), no rich-text brackets, at most 32 characters.</summary>

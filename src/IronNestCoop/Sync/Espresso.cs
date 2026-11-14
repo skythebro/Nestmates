@@ -200,7 +200,7 @@ namespace IronNestCoop.Sync
         void OnEvent(in MsgContext c, NetReader r)
         {
             if (c.FromSlot == Coop.Session.LocalSlot || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
-            if (!(WorldReady.LocalReady || Coop.IsHost)) return;
+            if (!WorldReady.SenderReady(c)) return;
             var ev = (Ev)r.U8();
             var m = Machine();
             switch (ev)

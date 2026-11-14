@@ -70,6 +70,8 @@ namespace IronNestCoop.QA
                 tv.TrackShell(new MedalTrackedValues.Data_ShellFired { ShellInstanceId = "qa-shell-1", Hits = hits, ShotAtTime = Time.time });
                 tv.TrackKill(new MedalTrackedValues.Data_KilledEntity { Entity = unit, KilledAtTime = Time.time, ShellInstanceId = "qa-shell-1" });
                 tv.SetCustomValue("qa-value", 7f);
+                // the game fills the enemy total in later in the mission; give it a value so the sync is checked now
+                if (tv.TotalEnemyCount == 0) tv.TotalEnemyCount = 12;
                 // game build 26345858 added the enemy total behind the kill-percentage medal
                 bot.Signal("medals", $"{tv.Data_ShellsFired.Count}^{tv.Data_KilledEntities.Count}^{tv.TotalEnemyCount}");
             }
@@ -133,8 +135,8 @@ namespace IronNestCoop.QA
             foreach (var x in bot.Until(() => tv != null && tv.Data_ShellsFired.Count == mw[0] && tv.Data_KilledEntities.Count == mw[1], 5, null, soft: true)) yield return x;
             bot.Check(tv != null && tv.Data_ShellsFired.Count == mw[0] && tv.Data_KilledEntities.Count == mw[1] && tv.GetCustomValue("qa-value") == 7f,
                 $"the guest's medal records are the host's (shells {tv?.Data_ShellsFired.Count}/{mw[0]}, kills {tv?.Data_KilledEntities.Count}/{mw[1]}, custom {tv?.GetCustomValue("qa-value")})");
-            if (mw[2] == 0) bot.Note("the host's enemy total (kill-percentage medal) is still 0 here: not checked");
-            else bot.Check(tv != null && tv.TotalEnemyCount == mw[2],
+            foreach (var x in bot.Until(() => tv != null && tv.TotalEnemyCount == mw[2], 5, null, soft: true)) yield return x;
+            bot.Check(tv != null && tv.TotalEnemyCount == mw[2],
                 $"the guest's enemy total (kill-percentage medal) is the host's (guest {tv?.TotalEnemyCount}, host {mw[2]}; guest kill % {(tv == null ? 0 : tv.EnemyKillPercentage):F1})");
 
             foreach (var x in bot.Until(() => bot.HasSignal("effect"), 90, "host looked for area effects")) yield return x;

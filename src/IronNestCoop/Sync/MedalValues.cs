@@ -22,7 +22,7 @@ namespace IronNestCoop.Sync
         public static MedalValues Instance { get; private set; }
         static bool Off => LaunchArgs.Mutant("nomedalsync");
 
-        enum Ev : byte { Kill = 1, Shell = 2, Hits = 3, Punchcard = 4, Value = 5, Custom = 6 }
+        enum Ev : byte { Kill = 1, Shell = 2, Hits = 3, Punchcard = 4, Value = 5, Custom = 6, Total = 7 }
 
         public int Applied, Sent;
 
@@ -38,7 +38,14 @@ namespace IronNestCoop.Sync
             return w;
         }
 
-        void Send(NetWriter w) { WorldReady.SendToReady(Msg.MedalValues, w); Sent++; }
+        int _snapshotSlot = -1;   // while sending a join snapshot: only to this player
+
+        void Send(NetWriter w)
+        {
+            if (_snapshotSlot >= 0) Coop.Session.Send((ushort)Msg.MedalValues, w, Delivery.Reliable, (byte)_snapshotSlot);
+            else WorldReady.SendToReady(Msg.MedalValues, w);
+            Sent++;
+        }
 
         // ------------------------------------------------------------------ host: forward each record
 
@@ -74,6 +81,59 @@ namespace IronNestCoop.Sync
         internal void HostValue(int id, float v) { var w = Begin(Ev.Value); w.VarI(id); w.F32(v); Send(w); }
 
         internal void HostCustom(string key, float v) { var w = Begin(Ev.Custom); w.Str(key ?? ""); w.F32(v); Send(w); }
+
+        // The number of enemies the kill-percentage medal divides by (game build 26345858 and later). The game sets it
+        // in its own code, not through a method we can patch, so the host watches it and sends it when it changes.
+        int _sentTotal = -1;
+
+        public override void Tick(float dt)
+        {
+            if (!HostSends) { _sentTotal = -1; return; }
+            var tv = Values;
+            if (tv == null) { _sentTotal = -1; return; }
+            int total = tv.TotalEnemyCount;
+            if (total == _sentTotal) return;
+            _sentTotal = total;
+            var w = Begin(Ev.Total); w.VarI(total); Send(w);
+        }
+
+        /// <summary>
+        /// A player joining a running mission gets every record made so far, in the order the game made them, so their
+        /// end screen counts the whole mission and not only what happened after they joined.
+        /// </summary>
+        static void Part(string what, System.Action a)
+        {
+            try { a(); }
+            catch (System.Exception e) { CoopLog.ErrorOnce("medals-snap-" + what, $"[medals] join snapshot: {what} failed: {e}"); }
+        }
+
+        public override void SendSnapshot(byte slot)
+        {
+            var tv = Values;
+            if (Off || !Coop.IsHost || tv == null) return;
+            _snapshotSlot = slot;
+            int n = 0;
+            try
+            {
+                // each part on its own: one that can't be read (an IL2CPP value with nothing set) mustn't stop the rest
+                Part("values", () =>
+                {
+                    foreach (MedalTrackedValue id in System.Enum.GetValues(typeof(MedalTrackedValue)))
+                    {
+                        float v;
+                        try { v = tv.GetValue(id); } catch (System.Exception) { continue; }
+                        if (v != 0f) { HostValue((int)id, v); n++; }
+                    }
+                });
+                Part("custom values", () => { if (tv.CustomValues != null) foreach (var kv in tv.CustomValues) { HostCustom(kv.Key, kv.Value); n++; } });
+                Part("shells", () => { if (tv.Data_ShellsFired != null) foreach (var s in tv.Data_ShellsFired) if (s != null) { HostShell(s); n++; } });
+                Part("kills", () => { if (tv.Data_KilledEntities != null) foreach (var k in tv.Data_KilledEntities) if (k != null) { HostKill(k); n++; } });
+                Part("punchcards", () => { if (tv.Data_PunchcardsUsed != null) foreach (var p in tv.Data_PunchcardsUsed) if (p != null && p.Punchcard != null) { HostPunchcard(p); n++; } });
+                Part("enemy total", () => { var w = Begin(Ev.Total); w.VarI(tv.TotalEnemyCount); Send(w); });
+                CoopLog.Debug($"[medals] join snapshot to player {slot}: {n} records");
+            }
+            finally { _snapshotSlot = -1; }
+        }
 
         // ------------------------------------------------------------------ guest: record the same
 
@@ -150,6 +210,12 @@ namespace IronNestCoop.Sync
                 {
                     string key = r.Str(256); float v = r.F32();
                     if (float.IsFinite(v)) Do(() => tv.SetCustomValue(key, v));
+                    break;
+                }
+                case Ev.Total:
+                {
+                    int total = (int)r.VarI();
+                    if (total >= 0 && total < 100000) Do(() => tv.TotalEnemyCount = total);
                     break;
                 }
             }

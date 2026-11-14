@@ -22,6 +22,13 @@ namespace IronNestCoop.Sync
         public static bool LocalReady { get; private set; }
         static readonly HashSet<byte> ReadySlots = new();
         public static bool IsReady(byte slot) => ReadySlots.Contains(slot);
+
+        /// <summary>
+        /// The message's sender has the current mission loaded. On a guest: this machine has it loaded (guests only act
+        /// on what the host relays). On the host: the sending guest has said it's ready, so a guest that knows the
+        /// mission number but hasn't loaded it can't press the host's buttons.
+        /// </summary>
+        public static bool SenderReady(in MsgContext c) => Coop.IsHost ? (c.FromHost || ReadySlots.Contains(c.FromSlot)) : LocalReady;
         static int _readyEpoch = -1;
 
         public WorldReady() { Instance = this; }

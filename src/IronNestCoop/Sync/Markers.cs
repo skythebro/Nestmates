@@ -148,19 +148,25 @@ namespace IronNestCoop.Sync
                 for (int i = 0; i < p.placedMarkers.Count; i++) SendAdd(p, i, slot);
         }
 
+        static readonly SlotLimiter AddLimit = new SlotLimiter(perSecond: 5f, burst: 60f);
+        const int MaxMarkers = 2000;   // far more than a map can usefully hold
+
         void OnEvent(in MsgContext c, NetReader r)
         {
             if (c.FromSlot == Coop.Session.LocalSlot || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
-            if (!(WorldReady.LocalReady || Coop.IsHost) || !Shared) return;
+            if (!WorldReady.SenderReady(c) || !Shared) return;
             switch ((Ev)r.U8())
             {
                 case Ev.Add:
                 {
-                    string id = r.Str(64), placerPath = r.Str(2048), json = r.Str(1 << 20);
+                    string id = r.Str(64), placerPath = r.Str(2048), json = r.Str(64 << 10);   // a line is a few hundred bytes
                     if (_byId.TryGetValue(id, out var have) && have != null) return;   // already shown
+                    if (!c.FromHost && !AddLimit.Allow(c.FromSlot)) { CoopLog.Debug($"[markers] slot {c.FromSlot} draws too fast: dropped {id}"); return; }
                     var placer = ScenePath.Find(placerPath)?.GetComponent<MapMarkerPlacer>();
+                    if (placer == null) { CoopLog.Debug($"[markers] cannot show {id} (placer {placerPath})"); return; }
+                    if (placer.placedMarkers.Count >= MaxMarkers) { CoopLog.ErrorOnce("markers-cap", $"[markers] the map has {MaxMarkers} lines: no more are shown"); return; }
                     var data = GameJson.Read<MapMarkerSaveData>(json);
-                    if (placer == null || data == null) { CoopLog.Debug($"[markers] cannot show {id} (placer {placerPath})"); return; }
+                    if (data == null) { CoopLog.Debug($"[markers] cannot read {id}"); return; }
                     int before = placer.placedMarkers.Count;
                     Coop.Apply("marker " + id, () => placer.RestoreMarker(data));
                     if (placer.placedMarkers.Count > before)

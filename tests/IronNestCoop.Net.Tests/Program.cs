@@ -155,6 +155,38 @@ namespace IronNestCoop.Net.Tests
         }
 
         [Test]
+        static void ReplayedPiecesDoNotDeliverTwice()
+        {
+            var tx = new Fragmenter(); var rx = new Fragmenter();
+            var msg = new byte[5_000]; new Random(5).NextBytes(msg);
+            var pieces = tx.Split(msg, 1200).ToList();
+            int delivered = 0;
+            foreach (var p in pieces) if (rx.Accept(9, new NetReader(p, 1, p.Length - 1)) != null) delivered++;
+            foreach (var p in pieces) if (rx.Accept(9, new NetReader(p, 1, p.Length - 1)) != null) delivered++;   // replay
+            A.True(delivered == 1, $"delivered once, not {delivered} times");
+            rx.Forget(9);   // the peer left: a new session's ids start over and must work again
+            foreach (var p in pieces) if (rx.Accept(9, new NetReader(p, 1, p.Length - 1)) != null) delivered++;
+            A.True(delivered == 2, "after Forget the same id is accepted again");
+        }
+
+        [Test]
+        static void PendingBytesPerPeerAreCapped()
+        {
+            var rx = new Fragmenter();
+            var piece = new byte[60_000];
+            // eight partial messages of 4096 pieces each would be 8 x 240 MB; the per-peer budget must stop it first
+            A.Throws<MalformedMessageException>(() =>
+            {
+                for (uint id = 1; id <= 8; id++)
+                    for (int i = 0; i < 4095; i++)
+                    {
+                        var w = new NetWriter(); w.U32(id); w.U16((ushort)i); w.U16(4096); w.Raw(piece, 0, piece.Length);
+                        rx.Accept(7, new NetReader(w.ToArray()));
+                    }
+            }, "per-peer partial bytes capped");
+        }
+
+        [Test]
         static void BadFragmentHeaderIsMalformed()
         {
             var w = new NetWriter(); w.U32(1); w.U16(5); w.U16(3); // index >= count
@@ -167,6 +199,23 @@ namespace IronNestCoop.Net.Tests
         const ushort Chat = 100;
 
         static NetWriter Msg(string s) { var w = new NetWriter(); w.Str(s); return w; }
+
+        [Test]
+        static void FloodIsSpreadOverFramesInOrder()
+        {
+            var rig = new Rig();
+            var h = rig.Host(1, out var g);
+            var got = new List<int>();
+            g[0].On(Chat, (in MsgContext c, NetReader r) => got.Add(int.Parse(r.Str())));
+            int n = Session.Session.MaxPacketsPerTick * 2 + 500;
+            for (int i = 0; i < n; i++) h.Send(Chat, Msg(i.ToString()), Delivery.Reliable);
+            rig.Hub.Now += 0.016; h.Tick(); g[0].Tick();
+            A.True(got.Count > 0 && got.Count <= Session.Session.MaxPacketsPerTick, $"one frame handles at most the budget ({got.Count})");
+            rig.Run(0.2);
+            A.Eq(n, got.Count, "everything arrives over the next frames");
+            A.True(got.Select((v, i) => v == i).All(x => x), "in order");
+            A.True(g[0].DeferredTicks > 0, "the guest deferred packets to later frames");
+        }
 
         [Test]
         static void HostAndTwoGuestsSeeSameRoster()
@@ -226,7 +275,7 @@ namespace IronNestCoop.Net.Tests
             h.On(Chat, (in MsgContext c, NetReader r) => atHost++);
             g[1].On(Chat, (in MsgContext c, NetReader r) => atOther++);
             for (int i = 0; i < 5000; i++) g[0].Send(Chat, Msg("x"), Delivery.Unreliable);
-            rig.Run(0.05, 0.05);
+            rig.Run(0.5, 0.05);   // the host takes them over several frames (per-frame budget), all within one second
             A.True(atOther > 0 && atOther <= 2000, $"at most 2000 a second are passed on ({atOther})");
             A.True(atHost <= 2000, $"and handled by the host ({atHost})");
             A.True(rig.Log.Exists(l => l.Contains("more than play can make")), "the host says so in its log");

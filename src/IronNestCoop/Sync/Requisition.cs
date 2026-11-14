@@ -216,7 +216,7 @@ namespace IronNestCoop.Sync
 
         void OnOrder(in MsgContext c, NetReader r)
         {
-            if (NoDeckOrder || (int)r.VarU() != MissionFlow.Instance.Epoch || (!Coop.IsHost && !WorldReady.LocalReady)) return;
+            if (NoDeckOrder || (int)r.VarU() != MissionFlow.Instance.Epoch || !WorldReady.SenderReady(c)) return;
             if (!Coop.IsHost && !c.FromHost) return;
             string path = r.Str(2048);
             int n = r.Count(256, "cards in the deck order");

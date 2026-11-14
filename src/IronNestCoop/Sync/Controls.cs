@@ -388,11 +388,11 @@ namespace IronNestCoop.Sync
         // ------------------------------------------------------------------ receiving
 
         /// <summary>True for a control message that belongs to this mission, when this machine has the mission loaded.</summary>
-        static bool Current(NetReader r) => (int)r.VarU() == MissionFlow.Instance.Epoch && (WorldReady.LocalReady || Coop.IsHost);
+        static bool Current(in MsgContext c, NetReader r) => (int)r.VarU() == MissionFlow.Instance.Epoch && WorldReady.SenderReady(c);
 
         void OnValue(in MsgContext c, NetReader r)
         {
-            if (!Current(r)) return;
+            if (!Current(c, r)) return;
             string id = r.Str(2048);
             var kind = (Kind)r.U8();
             float v = r.F32();
@@ -417,7 +417,7 @@ namespace IronNestCoop.Sync
 
         void OnClick(in MsgContext c, NetReader r)
         {
-            if (!Current(r)) return;
+            if (!Current(c, r)) return;
             string id = r.Str(2048);
             bool down = r.Bool();
             if (!_buttons.TryGetValue(id, out var b)) { PeerRescan(); if (!_buttons.TryGetValue(id, out b)) { CoopLog.Warn($"[controls] unknown button {id}"); return; } }
@@ -551,7 +551,7 @@ namespace IronNestCoop.Sync
         void OnHover(in MsgContext c, NetReader r)
         {
             if (c.FromSlot == Coop.Session.LocalSlot || (int)r.VarU() != MissionFlow.Instance.Epoch) return;
-            if (!(WorldReady.LocalReady || Coop.IsHost)) return;
+            if (!WorldReady.SenderReady(c)) return;
             string id = r.Str(2048); bool on = r.Bool();
             if (!HostRules.On(Rule.SharedHover)) return;
             if (!_buttons.TryGetValue(id, out var b)) { PeerRescan(); if (!_buttons.TryGetValue(id, out b)) return; }

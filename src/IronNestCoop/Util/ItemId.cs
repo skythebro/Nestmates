@@ -136,11 +136,24 @@ namespace IronNestCoop.Util
             }
         }
 
+        static readonly Dictionary<string, float> _cardMissUntil = new();
+
         static Transform FindPunchcard(string id)
         {
             Cards();
-            if (!_cardById.TryGetValue(id, out var t) || t == null) { Cards(miss: true); _cardById.TryGetValue(id, out t); }
-            return t != null ? t : null;
+            if (_cardById.TryGetValue(id, out var t) && t != null) return t;
+            // an id that isn't here: rescan the deck at most once a second for it (a bad id could otherwise force a
+            // full card search every frame)
+            if (_cardMissUntil.TryGetValue(id, out var until) && Time.unscaledTime < until) return null;
+            Cards(miss: true); _cardById.TryGetValue(id, out t);
+            if (t == null)
+            {
+                if (_cardMissUntil.Count > 256) _cardMissUntil.Clear();
+                _cardMissUntil[id] = Time.unscaledTime + 1f;
+                return null;
+            }
+            _cardMissUntil.Remove(id);
+            return t;
         }
 
         public static string Of(Component c)
