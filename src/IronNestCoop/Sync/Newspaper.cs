@@ -83,12 +83,36 @@ namespace IronNestCoop.Sync
                 w.Str(e.isPool ? (e.pool != null ? e.pool.name : "") : (e.prefab != null ? e.prefab.name : ""));
                 w.VarI(e.remainingUses); w.Str(e.note ?? "");
             }
+            // Where each "sequential" pool is in its list. Each machine remembers this across missions from its own
+            // play, so without it the same queue printed different articles for the host and the guest.
+            var seq = new List<(string, int)>();
+            if (m._sequentialNextIndex != null)
+                foreach (var kv in m._sequentialNextIndex) if (kv.Key != null) seq.Add((kv.Key.name, kv.Value));
+            w.VarU((ulong)seq.Count);
+            foreach (var (name, index) in seq) { w.Str(name); w.VarI(index); }
             Coop.Session.Send((ushort)Msg.Newspaper, w, Delivery.Reliable, slot);
         }
 
         // ------------------------------------------------------------------ guest: queue the same
 
         static bool _applying;
+
+        /// <summary>Take the host's place in every sequential pool (and forget this machine's own).</summary>
+        static int SetSequential(ArticlePoolQueueManager m, List<(string name, int index)> seq)
+        {
+            if (LaunchArgs.Mutant("nonewsorder")) return 0;   // used by the tests to prove the printed paper depends on it
+            var d = m._sequentialNextIndex;
+            if (d == null) { d = new Il2CppSystem.Collections.Generic.Dictionary<ArticlePoolDefinition, int>(); m._sequentialNextIndex = d; }
+            d.Clear();
+            int set = 0;
+            foreach (var (name, index) in seq)
+            {
+                var p = FindPool(name);
+                if (p == null || index < 0) continue;
+                d[p] = index; set++;
+            }
+            return set;
+        }
 
         void OnMsg(in MsgContext c, NetReader r)
         {
@@ -102,9 +126,16 @@ namespace IronNestCoop.Sync
                 int n = r.Count(256, "queued articles");
                 var list = new List<(bool, string, int, string)>();
                 for (int i = 0; i < n; i++) list.Add((r.Bool(), r.Str(256), (int)r.VarI(), r.Str(512)));
+                var seq = new List<(string, int)>();
+                if (r.Remaining > 0)   // hosts before 1.0.3 don't send it
+                {
+                    int k = r.Count(256, "sequential pools");
+                    for (int i = 0; i < k; i++) seq.Add((r.Str(256), (int)r.VarI()));
+                }
                 _waiting.Clear();
                 Apply(() => { m.ClearQueue(); foreach (var e in list) Queue(m, e.Item1, e.Item2, e.Item3, e.Item4); });
-                CoopLog.Info($"[newspaper] took the host's article queue ({n} entries)");
+                int set = SetSequential(m, seq);
+                CoopLog.Info($"[newspaper] took the host's article queue ({n} entries) and its place in {set} sequential pool(s)");
                 return;
             }
             string name = r.Str(256); int count = (int)r.VarI(); string note = r.Str(512);
