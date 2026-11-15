@@ -1,6 +1,6 @@
 NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
 =================================================================================
-!! RELEASE CHECKLIST (current: 1.0.2; 1.0.0 approved by the owner)
+!! RELEASE CHECKLIST (current: 1.0.3; 1.0.0 approved by the owner)
    [x] Source is public on GitHub: https://github.com/skythebro/Nestmates (MIT); linked in the description.
    [x] Renamed to "Nestmates" in the mod itself (plugins\Nestmates\, Nestmates.cfg, Nestmates.log,
        Nestmates-1.0.2.zip); paths on this page updated.
@@ -17,8 +17,8 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
        the description and changelog (build passed QA 2026-10-29).
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
-   [x] Version/build checked against dist/out/Nestmates-1.0.2.zip: 1.0.2, game build 25664742,
-       BepInEx 6.0.0-be.785. Zip SHA-256 1785c96e28a0b8c6ce86b3fc43b51b6d1e9b680cc5222d50de13a3539b5551db.
+   [x] Version/build checked against dist/out/Nestmates-1.0.3.zip: 1.0.3, game build 26352746,
+       BepInEx 6.0.0-be.785 and be.788. Zip SHA-256 e736dac181582ddf361184e612a6111ebad4ec027fb5b0dd2d6818708773bc40.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
@@ -45,7 +45,7 @@ Xeltor's GitHub repo.)
 ---------------------------------------------------------------------------------
 VERSION
 ---------------------------------------------------------------------------------
-1.0.2
+1.0.3
 
 
 ---------------------------------------------------------------------------------
@@ -90,9 +90,9 @@ PERMISSIONS & CREDITS
 ---------------------------------------------------------------------------------
 FILE DESCRIPTION (for the uploaded zip, "Main files")
 ---------------------------------------------------------------------------------
-Nestmates 1.0.2 (Nestmates-1.0.2.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
-Requires BepInEx 6.0.0-be.785 IL2CPP. Every player needs the same version.
-Built for game build [GAME BUILD: 25664742].
+Nestmates 1.0.3 (Nestmates-1.0.3.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
+Requires BepInEx 6.0.0-be.785 or be.788 IL2CPP. Every player needs the same version.
+Built for game build [GAME BUILD: 26352746].
 
 
 ---------------------------------------------------------------------------------
@@ -148,7 +148,7 @@ Built in. Nothing to download or set up.
 [*][b]Emotes:[/b] [b]1[/b] Wave, [b]2[/b] Look here!, [b]3[/b] Thumbs up, [b]4[/b] Salute, [b]5[/b] Shrug, [b]6[/b] Cheer, [b]7[/b] Nod, [b]8[/b] Shake head. The keys do nothing while you type in a text field, and you can turn them off ("Emotes on keys 1-8").
 [*][b]Streamer mode[/b] ("Streamer mode: hide lobby codes", on by default): lobby codes, the join key and network addresses show as dots. [i]Show[/i] reveals them for 20 seconds, and [i]Copy[/i] still copies them.
 [*]The host can [b]kick or ban[/b] players from the Players tab.[/list][line][size=5][b]Compatibility[/b][/size]
-[list][*]Built and tested on game build [b]25664742[/b] with BepInEx [b]6.0.0-be.785[/b]. A game update can break any mod. If it does, wait for an update here before reporting bugs.
+[list][*]Built and tested on game build [b]26352746[/b] with BepInEx [b]6.0.0-be.785[/b] and [b]be.788[/b]. A game update can break any mod. If it does, wait for an update here before reporting bugs.
 [*][b]Not compatible with other co-op mods.[/b] Use only one co-op mod at a time.
 [*]Other BepInEx mods that only change visuals or quality of life should be fine. Mods that change mission logic, enemies or the economy may desync. If you run one, every player needs it.
 [*]Steam only. The mod doesn't switch off achievements or leaderboards.
@@ -171,6 +171,15 @@ MIT licensed and written from scratch. No game files are included. Source code, 
 ---------------------------------------------------------------------------------
 CHANGELOG (Nexus "Logs" tab)
 ---------------------------------------------------------------------------------
+1.0.3
+- Newspaper: guests now get the same end-of-mission newspaper as the host (fixes a desync reported on 1.0.2).
+- End screen: the kill-percentage medal now matches the host's for guests.
+- Joining a mission in progress: you now get the medal records (kills, shells, punchcards) from before you joined.
+- Works with the latest game update (build 26352746).
+- Sturdier against a broken or misbehaving connection: limits on how much a player can send, and the game no longer stalls on a flood of network traffic.
+- Discord status only connects to the real Discord app.
+- Everyone in a game needs 1.0.3.
+
 1.0.2
 - A guest's newspaper between missions is now the host's issue, with the mission's front page and date.
 - The end-of-mission screen shows the same statistics, medals, kill streaks and kills per impact for every player.
@@ -215,14 +224,16 @@ CHANGELOG (Nexus "Logs" tab)
 
 
 ---------------------------------------------------------------------------------
-FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.2)
+FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.3)
 ---------------------------------------------------------------------------------
-Nestmates 1.0.2:
-- A guest's newspaper between missions is now the host's issue, with the mission's front page and date.
-- The end-of-mission screen shows the same statistics, medals, kill streaks and kills per impact for every player.
-- New host rule "Share map measurement notes" (off by default).
-- Tested with two guests (three players) across five campaign missions.
-- Everyone in a game needs 1.0.2.
+Nestmates 1.0.3:
+- Newspaper: guests now get the same end-of-mission newspaper as the host (fixes a desync reported on 1.0.2).
+- End screen: the kill-percentage medal now matches the host's for guests.
+- Joining a mission in progress: you now get the medal records (kills, shells, punchcards) from before you joined.
+- Works with the latest game update (build 26352746).
+- Sturdier against a broken or misbehaving connection: limits on how much a player can send, and the game no longer stalls on a flood of network traffic.
+- Discord status only connects to the real Discord app.
+- Everyone in a game needs 1.0.3.
 
 
 ---------------------------------------------------------------------------------
