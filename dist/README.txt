@@ -1,7 +1,7 @@
-Nestmates 1.0.2 - online co-op for IRON NEST: Heavy Turret Simulator
+Nestmates 1.0.3 - online co-op for IRON NEST: Heavy Turret Simulator
 =================================================================================
 
-Tested against: game build 25664742 (Steam), BepInEx 6.0.0-be.785 IL2CPP x64.
+Tested against: game build 26352746 (Steam), BepInEx 6.0.0-be.785 and be.788 IL2CPP x64.
 
 Install (every player)
   1. Back up your saves: %USERPROFILE%\AppData\LocalLow\Iron Nest\Iron Nest_ Heavy Turret Simulator\ (copy the whole folder somewhere).
