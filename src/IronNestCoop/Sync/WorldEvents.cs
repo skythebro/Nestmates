@@ -197,6 +197,7 @@ namespace IronNestCoop.Sync
             int ch = PowderChargeInventory.Instance != null ? PowderChargeInventory.Instance.CurrentCharges : -1;
             var e = Begin(Ev.Economy); e.VarI(rp); e.VarI(ch); To(e);
             SendGenericTimers(slot);
+            foreach (var (path, message) in BrokenConsoles.BrokenNow()) { var bw = Begin(Ev.SceneNote); bw.Str(path); bw.Str(message); To(bw); }   // a console the mission broke before this player joined
             Spawns.RemoveAll(sp => sp.Epoch != MissionFlow.Instance.Epoch);
             foreach (var sp in Spawns) { var w = Begin(Ev.PrefabSpawn); w.Str(sp.Path); To(w); }
             Scouts.RemoveAll(sc => sc.Epoch != MissionFlow.Instance.Epoch);

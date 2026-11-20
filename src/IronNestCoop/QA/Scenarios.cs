@@ -40,6 +40,7 @@ namespace IronNestCoop.QA
             "mech1705" => bot.IsHostRole ? Mech1705Host(bot) : Mech1705Guest(bot),
             "campaign" => bot.IsHostRole ? CampaignHost(bot) : CampaignGuest(bot),
             "news" => bot.IsHostRole ? NewsHost(bot) : NewsGuest(bot),
+            "calclock" => bot.IsHostRole ? CalcLockHost(bot) : CalcLockGuest(bot),
             "measurenotes" => bot.IsHostRole ? MeasureNotesHost(bot) : MeasureNotesGuest(bot),
             "language" => bot.IsHostRole ? LanguageHost(bot) : LanguageGuest(bot),
             "progress" => bot.IsHostRole ? ProgressHost(bot) : ProgressGuest(bot),

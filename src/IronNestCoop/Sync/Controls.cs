@@ -401,6 +401,7 @@ namespace IronNestCoop.Sync
             if (!_byId.TryGetValue(id, out var e)) { if (!PeerRescan()) return; if (!_byId.TryGetValue(id, out e)) return; }
             if (final && e.Volume) CoopLog.Debug($"[controls] got {id} = {v:F3} from slot {c.FromSlot}{(final ? " (final)" : "")}: local drag {LocalDrag(e)}, synced {Synced(e)}, now {ValueOf(e):F3}");
             if (!Alive(e) || LocalDrag(e) || !Synced(e)) return;         // never fight the local player's hand
+            if (Coop.IsHost && BrokenConsoles.IsBroken(e.Kind == Kind.Slider ? (Component)e.Slider : e.Dial)) return;   // the mission broke this console
             if (!final) ReplayDrag(e, true);
             e.RemoteDragger = final ? (byte)255 : c.FromSlot;
             e.RemoteDragUntil = Time.unscaledTime + 0.5f;
@@ -424,6 +425,7 @@ namespace IronNestCoop.Sync
             if (b == null) return;
             if (Coop.IsHost)
             {
+                if (BrokenConsoles.IsBroken(b)) { CoopLog.Debug($"[controls] slot {c.FromSlot} pressed {id} on a broken console: refused"); return; }
                 ClicksExecuted++;
                 PressingSlot = c.FromSlot;
                 try { Coop.Apply("press " + id, () => { if (down) b.OnClickDown(); else b.OnClickUp(); }); }
