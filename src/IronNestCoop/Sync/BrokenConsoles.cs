@@ -5,7 +5,7 @@ using UnityEngine;
 namespace IronNestCoop.Sync
 {
     /// <summary>
-    /// Consoles a mission can break: IronRoad sends "BrakeCalculator" (and other missions "BrakeRequisition"), and a
+    /// Consoles a mission can break: The Gorge (mission 7) sends "BrakeCalculator" and WhiteShells "BrakeRequisition", and a
     /// listener on the console turns on its "Broken state" (smoke, sparks, and a target in front of the controls that
     /// takes the clicks). On the host that stops real presses, but a guest's press is run on the host's button directly
     /// and went straight past it, so guests could still print cards with a broken calculator. The host now refuses a
@@ -19,12 +19,15 @@ namespace IronNestCoop.Sync
 
         static List<Breaker> _breakers;
         static int _scene = -1;
+        static float _searchedAt = -10f;
 
         static List<Breaker> Breakers()
         {
             int scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle;
-            if (_breakers != null && scene == _scene && _breakers.TrueForAll(b => b.Listener != null)) return _breakers;
-            _scene = scene;
+            bool fresh = _breakers != null && scene == _scene && _breakers.TrueForAll(b => b.Listener != null);
+            // an empty result is searched again after a moment (the scene may not have been loaded yet)
+            if (fresh && (_breakers.Count > 0 || Time.unscaledTime - _searchedAt < 2f)) return _breakers;
+            _scene = scene; _searchedAt = Time.unscaledTime;
             _breakers = new List<Breaker>();
             foreach (var l in Resources.FindObjectsOfTypeAll<MissionGraphNotificationListener>())
             {

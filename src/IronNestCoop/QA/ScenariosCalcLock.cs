@@ -13,22 +13,42 @@ namespace IronNestCoop.QA
                                  && !string.IsNullOrEmpty(x.gameObject.scene.name))?.gameObject;
 
         /// <summary>
-        /// A mission can break the ballistic calculator (IronRoad's "BrakeCalculator"). The host can't use it then, and
+        /// A mission can break the ballistic calculator (The Gorge's "BrakeCalculator"). The host can't use it then, and
         /// a guest's press must not print cards through the host either. First a normal guest press must print one
         /// (twin: --host-extra=-coop-mutant=nobrokengate).
         /// </summary>
         static IEnumerable<object> CalcLockHost(Bot bot)
         {
-            foreach (var x in bot.Until(() => Coop.IsHost && Coop.Session.PlayerCount == 2, 90, "guest joined")) yield return x;
+            bool late = LaunchArgs.Filter == "late";   // -coop-filter=late: break it before the guest joins (join replay)
+            if (!late) foreach (var x in bot.Until(() => Coop.IsHost && Coop.Session.PlayerCount == 2, 90, "guest joined")) yield return x;
+            foreach (var x in bot.Until(() => MissionFlow.GameReady, 120, "game finished booting")) yield return x;
+            // which campaign missions really break a console (script step names only)
+            var op = MissionFlow.FindOperation("Base_Campaign");
+            if (op != null)
+            {
+                int i = 0;
+                foreach (var n in op.Missions.ToArray())
+                {
+                    if (n?.Mission == null) continue;
+                    i++;
+                    var sends = new List<string>();
+                    foreach (var node in n.Mission.nodes)
+                        if (node?.TryCast<SleepyNodes.State_SendSceneNotification>() is SleepyNodes.State_SendSceneNotification sn && sn.MessageID != null && sn.MessageID.StartsWith("Brake"))
+                            sends.Add(sn.MessageID);
+                    if (sends.Count > 0) bot.Note($"campaign mission {i} ({n.Mission.MissionID}) sends {string.Join(", ", sends)}");
+                }
+            }
             foreach (var x in StartMission(bot, LaunchArgs.Mission ?? "Artillery Introduction")) yield return x;
-            foreach (var x in bot.Until(() => WorldReady.Slots.Contains((byte)1), 120, "guest mission loaded")) yield return x;
-            foreach (var x in bot.Wait(2)) yield return x;
-
-            int c0 = Cards().Count;
-            bot.Signal("press1");
-            foreach (var x in bot.Until(() => bot.HasSignal("pressed1"), 60, "guest pressed Calculate")) yield return x;
-            foreach (var x in bot.Until(() => Cards().Count > c0, 10, null, soft: true)) yield return x;
-            bot.Check(Cards().Count == c0 + 1, $"a guest's Calculate press prints a card while the calculator works ({c0} -> {Cards().Count})");
+            if (!late)
+            {
+                foreach (var x in bot.Until(() => WorldReady.Slots.Contains((byte)1), 120, "guest mission loaded")) yield return x;
+                foreach (var x in bot.Wait(2)) yield return x;
+                int c0 = Cards().Count;
+                bot.Signal("press1");
+                foreach (var x in bot.Until(() => bot.HasSignal("pressed1"), 60, "guest pressed Calculate")) yield return x;
+                foreach (var x in bot.Until(() => Cards().Count > c0, 10, null, soft: true)) yield return x;
+                bot.Check(Cards().Count == c0 + 1, $"a guest's Calculate press prints a card while the calculator works ({c0} -> {Cards().Count})");
+            }
 
             // break it the way the mission does
             var breaker = Resources.FindObjectsOfTypeAll<MissionGraphNotificationListener>()
@@ -37,6 +57,11 @@ namespace IronNestCoop.QA
             if (breaker != null) breaker.Trigger("BrakeCalculator");
             foreach (var x in bot.Wait(2)) yield return x;
             bot.Check(CalcBrokenState() != null && CalcBrokenState().activeInHierarchy, "the calculator is broken on the host");
+            if (late)
+            {
+                foreach (var x in bot.Until(() => WorldReady.Slots.Contains((byte)1), 240, "the guest joined after the break")) yield return x;
+                foreach (var x in bot.Wait(3)) yield return x;
+            }
 
             int c1 = Cards().Count;
             bot.Signal("press2");
@@ -53,12 +78,16 @@ namespace IronNestCoop.QA
             foreach (var x in bot.Until(() => WorldReady.LocalReady && Computer != null, 180, "in mission")) yield return x;
             var c = Computer;
 
-            foreach (var x in bot.Until(() => bot.HasSignal("press1"), 60, "host ready")) yield return x;
-            foreach (var x in DragDial(bot, c.rangeDial, 13f)) yield return x;
-            foreach (var x in DragDial(bot, c.powderChargeDial, 4f)) yield return x;
-            foreach (var x in bot.Wait(0.5)) yield return x;
-            foreach (var x in Press(bot, c.calculateButton)) yield return x;
-            bot.Signal("pressed1");
+            foreach (var x in bot.Until(() => bot.HasSignal("press1") || bot.HasSignal("press2"), 240, "host ready")) yield return x;
+            if (!bot.HasSignal("press2"))   // joined late: the calculator is already broken, no first press
+            {
+                foreach (var x in DragDial(bot, c.rangeDial, 13f)) yield return x;
+                foreach (var x in DragDial(bot, c.powderChargeDial, 4f)) yield return x;
+                foreach (var x in bot.Wait(0.5)) yield return x;
+                foreach (var x in Press(bot, c.calculateButton)) yield return x;
+                bot.Signal("pressed1");
+            }
+            else foreach (var x in DragDial(bot, c.powderChargeDial, 4f)) yield return x;
 
             foreach (var x in bot.Until(() => bot.HasSignal("press2"), 60, "host broke the calculator")) yield return x;
             bot.Check(CalcBrokenState() != null && CalcBrokenState().activeInHierarchy, "the calculator is broken for the guest too");
