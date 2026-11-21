@@ -24,6 +24,7 @@ namespace IronNestCoop.Sync
         public static Controls Instance { get; private set; }
 
         enum Kind : byte { Dial = 1, Slider = 2 }
+        const byte AskValue = 255;   // a guest asks the host for a control's current value (a control that appeared mid-mission)
         const float Eps = 0.0005f;
         static readonly int IsClicked = Animator.StringToHash("IsClicked");
 
@@ -129,7 +130,11 @@ namespace IronNestCoop.Sync
                 foreach (var o in UnityEngine.Object.FindObjectsOfType(Il2CppType.Of<LinearSliderInteractable>(), false))
                 {
                     var sl = o.TryCast<LinearSliderInteractable>();
-                    if (sl != null && !_byPtr.ContainsKey(sl.Pointer) && !_duplicates.Contains(sl.Pointer)) Add(new Entry { Kind = Kind.Slider, Slider = sl }, sl);
+                    if (sl != null && !_byPtr.ContainsKey(sl.Pointer) && !_duplicates.Contains(sl.Pointer))
+                    {
+                        Add(new Entry { Kind = Kind.Slider, Slider = sl }, sl);
+                        if (_byPtr.TryGetValue(sl.Pointer, out var added)) AskHost(added);
+                    }
                 }
                 return;
             }
@@ -141,7 +146,21 @@ namespace IronNestCoop.Sync
                 foreach (var b in UnityEngine.Object.FindObjectsOfType(Il2CppType.Of<RecordPlayerVolumeDialBridge>(), true))
                 { var vd = b.TryCast<RecordPlayerVolumeDialBridge>()?.volumeDial; if (vd != null && vd.Pointer == d.Pointer) vol = true; }
                 Add(new Entry { Kind = Kind.Dial, Dial = d, Volume = vol }, d);
+                if (_byPtr.TryGetValue(d.Pointer, out var added)) AskHost(added);
             }
+        }
+
+        /// <summary>
+        /// Guest: a dial that appeared mid-mission (a requisition card's grid panel, spawned again when the card was put
+        /// back) starts at its default, while the host's may already be turned. The host only sends a value when it
+        /// changes, so ask it for the current one.
+        /// </summary>
+        void AskHost(Entry e)
+        {
+            if (!Coop.InSession || !Coop.IsGuest || !WorldReady.LocalReady || LaunchArgs.Mutant("noaskvalue")) return;
+            var w = Coop.Writer();
+            w.VarU((ulong)MissionFlow.Instance.Epoch); w.Str(e.Id); w.U8(AskValue); w.F32(0f); w.Bool(false);
+            Coop.Send(Msg.ControlValue, w, Delivery.Reliable);
         }
 
         void Rescan(bool force = false)
@@ -394,11 +413,21 @@ namespace IronNestCoop.Sync
         {
             if (!Current(c, r)) return;
             string id = r.Str(2048);
-            var kind = (Kind)r.U8();
+            byte rawKind = r.U8();
+            var kind = (Kind)rawKind;
             float v = r.F32();
             bool final = r.Bool();
             if (!float.IsFinite(v)) return;
             if (!_byId.TryGetValue(id, out var e)) { if (!PeerRescan()) return; if (!_byId.TryGetValue(id, out e)) return; }
+            if (rawKind == AskValue)
+            {
+                // a guest asks for this control's value: answer that guest only, as a final value
+                if (!Coop.IsHost || !Alive(e) || !Synced(e)) return;
+                var w = Coop.Writer();
+                w.VarU((ulong)MissionFlow.Instance.Epoch); w.Str(e.Id); w.U8((byte)e.Kind); w.F32(ValueOf(e)); w.Bool(true);
+                Coop.Session.Send((ushort)Msg.ControlValue, w, Delivery.Reliable, c.FromSlot);
+                return;
+            }
             if (final && e.Volume) CoopLog.Debug($"[controls] got {id} = {v:F3} from slot {c.FromSlot}{(final ? " (final)" : "")}: local drag {LocalDrag(e)}, synced {Synced(e)}, now {ValueOf(e):F3}");
             if (!Alive(e) || LocalDrag(e) || !Synced(e)) return;         // never fight the local player's hand
             if (Coop.IsHost && BrokenConsoles.IsBroken(e.Kind == Kind.Slider ? (Component)e.Slider : e.Dial)) return;   // the mission broke this console
