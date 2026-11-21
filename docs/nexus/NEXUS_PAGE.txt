@@ -1,6 +1,6 @@
 NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
 =================================================================================
-!! RELEASE CHECKLIST (current: 1.0.4; 1.0.0 approved by the owner)
+!! RELEASE CHECKLIST (current: 1.0.5; 1.0.0 approved by the owner)
    [x] Source is public on GitHub: https://github.com/skythebro/Nestmates (MIT); linked in the description.
    [x] Renamed to "Nestmates" in the mod itself (plugins\Nestmates\, Nestmates.cfg, Nestmates.log,
        Nestmates-1.0.2.zip); paths on this page updated.
@@ -17,8 +17,8 @@ NEXUS MODS PAGE: NESTMATES (online co-op for IRON NEST: Heavy Turret Simulator)
        the description and changelog (build passed QA 2026-10-29).
    [x] README "Steam lobby untested" line removed from README.md and dist/README.txt; Steam lobby, invites and
        Discord Join confirmed between two real machines.
-   [x] Version/build checked against dist/out/Nestmates-1.0.4.zip: 1.0.4, game build 26352746,
-       BepInEx 6.0.0-be.785 and be.788. Zip SHA-256 3b2c327ead971939d515cf7060af0992a74071594d61dd8a9b622314b6326bce.
+   [x] Version/build checked against dist/out/Nestmates-1.0.5.zip: 1.0.5, game build 26352746,
+       BepInEx 6.0.0-be.785 and be.788. Zip SHA-256 6f6043dc58f87979e3cbaf7420057e9a4e9fe039f4fbe452a2b10779e2d260af.
        Re-check if the zip is rebuilt before upload.
    [x] Nexus category: Multiplayer (Nexus allows one category).
    [x] Discord Join, settings section headers and carried cats merged (build passed QA 2026-10-29).
@@ -45,7 +45,7 @@ Xeltor's GitHub repo.)
 ---------------------------------------------------------------------------------
 VERSION
 ---------------------------------------------------------------------------------
-1.0.4
+1.0.5
 
 
 ---------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ PERMISSIONS & CREDITS
 ---------------------------------------------------------------------------------
 FILE DESCRIPTION (for the uploaded zip, "Main files")
 ---------------------------------------------------------------------------------
-Nestmates 1.0.4 (Nestmates-1.0.4.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
+Nestmates 1.0.5 (Nestmates-1.0.5.zip). Extract into the game folder (the folder with "Iron Nest Heavy Turret Simulator.exe").
 Requires BepInEx 6.0.0-be.785 or be.788 IL2CPP. Every player needs the same version.
 Built for game build [GAME BUILD: 26352746].
 
@@ -171,6 +171,11 @@ MIT licensed and written from scratch. No game files are included. Source code, 
 ---------------------------------------------------------------------------------
 CHANGELOG (Nexus "Logs" tab)
 ---------------------------------------------------------------------------------
+1.0.5
+- Fixed: on the requisition console, guests could see a different grid square than the host (for example with the scout plane card). Guests now keep the card in the slot and see the same square as the host.
+- Controls that appear during a mission (like a card's console) now start at the host's values for guests.
+- Everyone in a game needs 1.0.5.
+
 1.0.4
 - Fixed: when a mission breaks the ballistic calculator (mission 7, The Gorge), guests could still use it and print fire-mission cards. A broken console now works for nobody, the same as for the host (this also covers the requisition console in WhiteShells).
 - A player who joins after a console broke sees it broken too.
@@ -229,12 +234,12 @@ CHANGELOG (Nexus "Logs" tab)
 
 
 ---------------------------------------------------------------------------------
-FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.4)
+FILE UPLOAD "CHANGELOG" BOX (paste-ready, 1.0.5)
 ---------------------------------------------------------------------------------
-Nestmates 1.0.4:
-- Fixed: when a mission breaks the ballistic calculator (mission 7, The Gorge), guests could still use it and print fire-mission cards. A broken console now works for nobody, the same as for the host (this also covers the requisition console in WhiteShells).
-- A player who joins after a console broke sees it broken too.
-- Everyone in a game needs 1.0.4.
+Nestmates 1.0.5:
+- Fixed: on the requisition console, guests could see a different grid square than the host (for example with the scout plane card). Guests now keep the card in the slot and see the same square as the host.
+- Controls that appear during a mission (like a card's console) now start at the host's values for guests.
+- Everyone in a game needs 1.0.5.
 
 
 ---------------------------------------------------------------------------------
