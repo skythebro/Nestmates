@@ -1,4 +1,4 @@
-Nestmates 1.0.4 - online co-op for IRON NEST: Heavy Turret Simulator
+Nestmates 1.0.5 - online co-op for IRON NEST: Heavy Turret Simulator
 =================================================================================
 
 Tested against: game build 26352746 (Steam), BepInEx 6.0.0-be.785 and be.788 IL2CPP x64.
