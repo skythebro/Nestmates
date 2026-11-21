@@ -41,6 +41,7 @@ namespace IronNestCoop.QA
             "campaign" => bot.IsHostRole ? CampaignHost(bot) : CampaignGuest(bot),
             "news" => bot.IsHostRole ? NewsHost(bot) : NewsGuest(bot),
             "calclock" => bot.IsHostRole ? CalcLockHost(bot) : CalcLockGuest(bot),
+            "reqgrid" => bot.IsHostRole ? ReqGridHost(bot) : ReqGridGuest(bot),
             "measurenotes" => bot.IsHostRole ? MeasureNotesHost(bot) : MeasureNotesGuest(bot),
             "language" => bot.IsHostRole ? LanguageHost(bot) : LanguageGuest(bot),
             "progress" => bot.IsHostRole ? ProgressHost(bot) : ProgressGuest(bot),

@@ -42,6 +42,13 @@ namespace IronNestCoop.Sync
         static RequisitionConsoleManager Console => RequisitionConsoleManager.Instance;
 
         /// <summary>The deck as "id:uses" in deck order (test hook too).</summary>
+        static bool SameCards(string a, string b)
+        {
+            var x = a.Split(',', System.StringSplitOptions.RemoveEmptyEntries); System.Array.Sort(x, System.StringComparer.Ordinal);
+            var y = b.Split(',', System.StringSplitOptions.RemoveEmptyEntries); System.Array.Sort(y, System.StringComparer.Ordinal);
+            return x.Length == y.Length && System.Linq.Enumerable.SequenceEqual(x, y);
+        }
+
         public static string DeckKey()
         {
             var cards = Console?.GetAllCards();
@@ -101,6 +108,10 @@ namespace IronNestCoop.Sync
             TrackSpent(ids);
             var con = Console;
             if (con == null || DeckKey() == key.ToString()) return;
+            // Only a different set of cards (or uses) needs a rebuild. The order changes on its own, for instance when
+            // a player puts a card into the requisition slot; rebuilding then destroyed the card in this player's slot
+            // and its grid panel (the deck's layout order has its own message).
+            if (SameCards(DeckKey(), key.ToString()) && !LaunchArgs.Mutant("deckorderrebuild")) return;
             var defs = Definitions();
             var list = new Il2CppSystem.Collections.Generic.List<PunchcardDefinitionV2>();
             foreach (var (id, _) in ids)
